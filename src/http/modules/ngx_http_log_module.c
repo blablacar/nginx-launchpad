@@ -7,7 +7,6 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
-#include <nginx.h>
 
 
 typedef struct ngx_http_log_op_s  ngx_http_log_op_t;
@@ -29,6 +28,7 @@ struct ngx_http_log_op_s {
 
 typedef struct {
     ngx_str_t                   name;
+    ngx_array_t                *flushes;
     ngx_array_t                *ops;        /* array of ngx_http_log_op_t */
 } ngx_http_log_fmt_t;
 
@@ -50,7 +50,7 @@ typedef struct {
     ngx_http_log_script_t      *script;
     time_t                      disk_full_time;
     time_t                      error_log_time;
-    ngx_array_t                *ops;        /* array of ngx_http_log_op_t */
+    ngx_http_log_fmt_t         *format;
 } ngx_http_log_t;
 
 
@@ -114,7 +114,7 @@ static char *ngx_http_log_set_log(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_log_set_format(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_http_log_compile_format(ngx_conf_t *cf,
-    ngx_array_t *ops, ngx_array_t *args, ngx_uint_t s);
+    ngx_array_t *flushes, ngx_array_t *ops, ngx_array_t *args, ngx_uint_t s);
 static char *ngx_http_log_open_file_cache(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static ngx_int_t ngx_http_log_init(ngx_conf_t *cf);
@@ -243,9 +243,11 @@ ngx_http_log_handler(ngx_http_request_t *r)
             continue;
         }
 
+        ngx_http_script_flush_no_cacheable_variables(r, log[l].format->flushes);
+
         len = 0;
-        op = log[l].ops->elts;
-        for (i = 0; i < log[l].ops->nelts; i++) {
+        op = log[l].format->ops->elts;
+        for (i = 0; i < log[l].format->ops->nelts; i++) {
             if (op[i].len == 0) {
                 len += op[i].getlen(r, op[i].data);
 
@@ -272,7 +274,7 @@ ngx_http_log_handler(ngx_http_request_t *r)
 
                 p = file->pos;
 
-                for (i = 0; i < log[l].ops->nelts; i++) {
+                for (i = 0; i < log[l].format->ops->nelts; i++) {
                     p = op[i].run(r, p, &op[i]);
                 }
 
@@ -291,7 +293,7 @@ ngx_http_log_handler(ngx_http_request_t *r)
 
         p = line;
 
-        for (i = 0; i < log[l].ops->nelts; i++) {
+        for (i = 0; i < log[l].format->ops->nelts; i++) {
             p = op[i].run(r, p, &op[i]);
         }
 
@@ -383,6 +385,8 @@ ngx_http_log_script_write(ngx_http_request_t *r, ngx_http_log_script_t *script,
 
         of.valid = clcf->open_file_cache_valid;
         of.min_uses = clcf->open_file_cache_min_uses;
+        of.test_dir = 1;
+        of.test_only = 1;
         of.errors = clcf->open_file_cache_errors;
         of.events = clcf->open_file_cache_events;
 
@@ -431,12 +435,13 @@ ngx_http_log_script_write(ngx_http_request_t *r, ngx_http_log_script_t *script,
     of.log = 1;
     of.valid = llcf->open_file_cache_valid;
     of.min_uses = llcf->open_file_cache_min_uses;
+    of.directio = NGX_OPEN_FILE_DIRECTIO_OFF;
 
     if (ngx_open_cached_file(llcf->open_file_cache, &log, &of, r->pool)
         != NGX_OK)
     {
         ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
-                      ngx_open_file_n " \"%s\" failed", log.data);
+                      "%s \"%s\" failed", of.failed, log.data);
         /* simulate successfull logging */
         return len;
     }
@@ -726,6 +731,8 @@ ngx_http_log_create_main_conf(ngx_conf_t *cf)
     fmt->name.len = sizeof("combined") - 1;
     fmt->name.data = (u_char *) "combined";
 
+    fmt->flushes = NULL;
+
     fmt->ops = ngx_array_create(cf->pool, 16, sizeof(ngx_http_log_op_t));
     if (fmt->ops == NULL) {
         return NGX_CONF_ERROR;
@@ -806,7 +813,7 @@ ngx_http_log_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     fmt = lmcf->formats.elts;
 
     /* the default "combined" format */
-    log->ops = fmt[0].ops;
+    log->format = &fmt[0];
     lmcf->combined_used = 1;
 
     return NGX_CONF_OK;
@@ -858,7 +865,7 @@ ngx_http_log_set_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
     } else {
-        if (ngx_conf_full_name(cf->cycle, &value[1], 0) == NGX_ERROR) {
+        if (ngx_conf_full_name(cf->cycle, &value[1], 0) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 
@@ -900,7 +907,7 @@ ngx_http_log_set_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         if (fmt[i].name.len == name.len
             && ngx_strcasecmp(fmt[i].name.data, name.data) == 0)
         {
-            log->ops = fmt[i].ops;
+            log->format = &fmt[i];
             goto buffer;
         }
     }
@@ -985,22 +992,28 @@ ngx_http_log_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     fmt->name = value[1];
 
+    fmt->flushes = ngx_array_create(cf->pool, 4, sizeof(ngx_int_t));
+    if (fmt->flushes == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
     fmt->ops = ngx_array_create(cf->pool, 16, sizeof(ngx_http_log_op_t));
     if (fmt->ops == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    return ngx_http_log_compile_format(cf, fmt->ops, cf->args, 2);
+    return ngx_http_log_compile_format(cf, fmt->flushes, fmt->ops, cf->args, 2);
 }
 
 
 static char *
-ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *ops,
-    ngx_array_t *args, ngx_uint_t s)
+ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *flushes,
+    ngx_array_t *ops, ngx_array_t *args, ngx_uint_t s)
 {
     u_char              *data, *p, ch;
     size_t               i, len;
     ngx_str_t           *value, var;
+    ngx_int_t           *flush;
     ngx_uint_t           bracket;
     ngx_http_log_op_t   *op;
     ngx_http_log_var_t  *v;
@@ -1112,6 +1125,16 @@ ngx_http_log_compile_format(ngx_conf_t *cf, ngx_array_t *ops,
 
                 if (ngx_http_log_variable_compile(cf, op, &var) != NGX_OK) {
                     return NGX_CONF_ERROR;
+                }
+
+                if (flushes) {
+
+                    flush = ngx_array_push(flushes);
+                    if (flush == NULL) {
+                        return NGX_CONF_ERROR;
+                    }
+
+                    *flush = op->data; /* variable index */
                 }
 
             found:
@@ -1299,7 +1322,7 @@ ngx_http_log_init(ngx_conf_t *cf)
         *value = ngx_http_combined_fmt;
         fmt = lmcf->formats.elts;
 
-        if (ngx_http_log_compile_format(cf, fmt->ops, &a, 0)
+        if (ngx_http_log_compile_format(cf, NULL, fmt->ops, &a, 0)
             != NGX_CONF_OK)
         {
             return NGX_ERROR;

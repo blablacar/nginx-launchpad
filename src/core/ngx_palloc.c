@@ -91,6 +91,26 @@ ngx_destroy_pool(ngx_pool_t *pool)
 }
 
 
+void
+ngx_reset_pool(ngx_pool_t *pool)
+{
+    ngx_pool_t        *p;
+    ngx_pool_large_t  *l;
+
+    for (l = pool->large; l; l = l->next) {
+        if (l->alloc) {
+            ngx_free(l->alloc);
+        }
+    }
+
+    pool->large = NULL;
+
+    for (p = pool; p; p = p->d.next) {
+        p->d.last = (u_char *) p + sizeof(ngx_pool_t);
+    }
+}
+
+
 void *
 ngx_palloc(ngx_pool_t *pool, size_t size)
 {
@@ -171,6 +191,7 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     new->d.next = NULL;
 
     m += sizeof(ngx_pool_data_t);
+    m = ngx_align_ptr(m, NGX_ALIGNMENT);
     new->d.last = m + size;
 
     current = pool->current;
@@ -301,6 +322,27 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
     ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, p->log, 0, "add cleanup: %p", c);
 
     return c;
+}
+
+
+void
+ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd)
+{
+    ngx_pool_cleanup_t       *c;
+    ngx_pool_cleanup_file_t  *cf;
+
+    for (c = p->cleanup; c; c = c->next) {
+        if (c->handler == ngx_pool_cleanup_file) {
+
+            cf = c->data;
+
+            if (cf->fd == fd) {
+                c->handler(cf);
+                c->handler = NULL;
+                return;
+            }
+        }
+    }
 }
 
 

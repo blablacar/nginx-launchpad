@@ -1,3 +1,17 @@
+nginx (0.7.59-1) unstable; urgency=low
+
+  * New upstream release, first in Debian for the 0.7 branch. Among other
+    issues, it also fixes the problem with wildcard dns names used with SSL.
+    (Closes: #515904)
+  * debian/watch: updated.
+  * debian/postinst: fixed a bashism. (Closes: #507913)
+  * debian/conf/nginx.conf: removed default_type. (Closes: #509390)
+  * debian/control: updated Standards-Version to 3.8.1, no changes needed.
+  * debian/NEWS.Debian: documented the issues with
+    server_names_hash_bucket_size. (Closes: #524785)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Sun, 31 May 2009 18:38:56 +0200
+
 nginx (0.7.14-1) experimental; urgency=low
 
   * New upstream release.
@@ -9,6 +23,32 @@ nginx (0.7.14-1) experimental; urgency=low
     /var/www.
 
  -- Jose Parrella <bureado@debian.org>  Tue, 02 Sep 2008 20:48:58 -0430
+
+nginx (0.6.34-2) unstable; urgency=low
+
+  * Added support for realip module. (Closes: #507419)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Sat, 06 Dec 2008 10:34:01 +0100
+
+nginx (0.6.34-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/rules: removed the --with-debug configure switch. (Closes: #500891)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Sun, 30 Nov 2008 11:37:13 +0100
+
+nginx (0.6.32-3) unstable; urgency=low
+
+  * debian/control: build again on all the architectures, but use the switch
+    --with-cc-opt="-m32 -mcpu=ultrasparc" on sparch. (Closes: #479185)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Thu, 25 Sep 2008 17:14:27 +0200
+
+nginx (0.6.32-2) unstable; urgency=low
+
+  * debian/control: disabled support for sparc. (Closes: #479185)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Sat, 20 Sep 2008 11:48:48 +0200
 
 nginx (0.6.32-1) unstable; urgency=low
 

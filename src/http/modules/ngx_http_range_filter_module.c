@@ -187,7 +187,7 @@ ngx_http_range_header_filter(ngx_http_request_t *r)
     }
 
     if (ngx_array_init(&ctx->ranges, r->pool, 1, sizeof(ngx_http_range_t))
-        == NGX_ERROR)
+        != NGX_OK)
     {
         return NGX_ERROR;
     }
@@ -199,6 +199,7 @@ ngx_http_range_header_filter(ngx_http_request_t *r)
         ngx_http_set_ctx(r, ctx, ngx_http_range_body_filter_module);
 
         r->headers_out.status = NGX_HTTP_PARTIAL_CONTENT;
+        r->headers_out.status_line.len = 0;
 
         if (ctx->ranges.nelts == 1) {
             return ngx_http_range_singlepart_header(r, ctx);
@@ -455,6 +456,8 @@ ngx_http_range_multipart_header(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
+    r->headers_out.content_type_lowcase = NULL;
+
     /* "Content-Type: multipart/byteranges; boundary=0123456789" */
 
     r->headers_out.content_type.len =
@@ -463,6 +466,7 @@ ngx_http_range_multipart_header(ngx_http_request_t *r,
                                        boundary)
                            - r->headers_out.content_type.data;
 
+    r->headers_out.content_type_len = r->headers_out.content_type.len;
 
     /* the size of the last boundary CRLF "--0123456789--" CRLF */
 
@@ -654,7 +658,13 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "http range body skip");
 
+            if (buf->in_file) {
+                buf->file_pos = buf->file_last;
+            }
+
             buf->pos = buf->last;
+            buf->sync = 1;
+
             continue;
         }
 
@@ -702,6 +712,7 @@ static ngx_int_t
 ngx_http_range_multipart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
+    off_t              body_start;
     ngx_buf_t         *b, *buf;
     ngx_uint_t         i;
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
@@ -710,6 +721,12 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     ll = &out;
     buf = in->buf;
     range = ctx->ranges.elts;
+
+#if (NGX_HTTP_CACHE)
+    body_start = r->cached ? r->cache->body_start : 0;
+#else
+    body_start = 0;
+#endif
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
 
@@ -771,8 +788,8 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         b->file = buf->file;
 
         if (buf->in_file) {
-            b->file_pos = range[i].start;
-            b->file_last = range[i].end;
+            b->file_pos = body_start + range[i].start;
+            b->file_last = body_start + range[i].end;
         }
 
         if (ngx_buf_in_memory(buf)) {

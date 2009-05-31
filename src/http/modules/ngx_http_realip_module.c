@@ -9,7 +9,10 @@
 #include <ngx_http.h>
 
 
-/* AF_INET only */
+#define NGX_HTTP_REALIP_XREALIP  0
+#define NGX_HTTP_REALIP_XFWD     1
+#define NGX_HTTP_REALIP_HEADER   2
+
 
 typedef struct {
     in_addr_t          mask;
@@ -19,7 +22,9 @@ typedef struct {
 
 typedef struct {
     ngx_array_t       *from;     /* array of ngx_http_realip_from_t */
-    ngx_uint_t         xfwd;
+    ngx_uint_t         type;
+    ngx_uint_t         hash;
+    ngx_str_t          header;
 } ngx_http_realip_loc_conf_t;
 
 
@@ -34,17 +39,11 @@ static ngx_int_t ngx_http_realip_handler(ngx_http_request_t *r);
 static void ngx_http_realip_cleanup(void *data);
 static char *ngx_http_realip_from(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
+static char *ngx_http_realip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void *ngx_http_realip_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_realip_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
 static ngx_int_t ngx_http_realip_init(ngx_conf_t *cf);
-
-
-static ngx_conf_enum_t  ngx_http_realip_header[] = {
-    { ngx_string("X-Forwarded-For"), 1 },
-    { ngx_string("X-Real-IP"), 0 },
-    { ngx_null_string, 0 }
-};
 
 
 static ngx_command_t  ngx_http_realip_commands[] = {
@@ -58,10 +57,10 @@ static ngx_command_t  ngx_http_realip_commands[] = {
 
     { ngx_string("real_ip_header"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_enum_slot,
+      ngx_http_realip,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_realip_loc_conf_t, xfwd),
-      &ngx_http_realip_header },
+      0,
+      NULL },
 
       ngx_null_command
 };
@@ -105,7 +104,9 @@ ngx_http_realip_handler(ngx_http_request_t *r)
     u_char                      *ip, *p;
     size_t                       len;
     in_addr_t                    addr;
-    ngx_uint_t                   i;
+    ngx_uint_t                   i, hash;
+    ngx_list_part_t             *part;
+    ngx_table_elt_t             *header;
     struct sockaddr_in          *sin;
     ngx_connection_t            *c;
     ngx_pool_cleanup_t          *cln;
@@ -130,7 +131,10 @@ ngx_http_realip_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    if (rlcf->xfwd == 0) {
+    switch (rlcf->type) {
+
+    case NGX_HTTP_REALIP_XREALIP:
+
         if (r->headers_in.x_real_ip == NULL) {
             return NGX_DECLINED;
         }
@@ -138,7 +142,10 @@ ngx_http_realip_handler(ngx_http_request_t *r)
         len = r->headers_in.x_real_ip->value.len;
         ip = r->headers_in.x_real_ip->value.data;
 
-    } else {
+        break;
+
+    case NGX_HTTP_REALIP_XFWD:
+
         if (r->headers_in.x_forwarded_for == NULL) {
             return NGX_DECLINED;
         }
@@ -154,13 +161,55 @@ ngx_http_realip_handler(ngx_http_request_t *r)
                 break;
             }
         }
+
+        break;
+
+    default: /* NGX_HTTP_REALIP_HEADER */
+
+        part = &r->headers_in.headers.part;
+        header = part->elts;
+
+        hash = rlcf->hash;
+        len = rlcf->header.len;
+        p = rlcf->header.data;
+
+        for (i = 0; /* void */ ; i++) {
+
+            if (i >= part->nelts) {
+                if (part->next == NULL) {
+                    break;
+                }
+
+                part = part->next;
+                header = part->elts;
+                i = 0;
+            }
+
+            if (hash == header[i].hash
+                && len == header[i].key.len
+                && ngx_strncmp(p, header[i].lowcase_key, len) == 0)
+            {
+                len = header[i].value.len;
+                ip = header[i].value.data;
+
+                goto found;
+            }
+        }
+
+        return NGX_DECLINED;
     }
+
+found:
 
     c = r->connection;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0, "realip: \"%s\"", ip);
 
     /* AF_INET only */
+
+    if (r->connection->sockaddr->sa_family != AF_INET) {
+        return NGX_DECLINED;
+    }
 
     sin = (struct sockaddr_in *) c->sockaddr;
 
@@ -231,10 +280,10 @@ ngx_http_realip_from(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_realip_loc_conf_t *rlcf = conf;
 
-    ngx_int_t                 rc;
-    ngx_str_t                *value;
-    ngx_inet_cidr_t           in_cidr;
-    ngx_http_realip_from_t   *from;
+    ngx_int_t                rc;
+    ngx_str_t               *value;
+    ngx_cidr_t               cidr;
+    ngx_http_realip_from_t  *from;
 
     if (rlcf->from == NULL) {
         rlcf->from = ngx_array_create(cf->pool, 2,
@@ -251,11 +300,17 @@ ngx_http_realip_from(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    rc = ngx_ptocidr(&value[1], &in_cidr);
+    rc = ngx_ptocidr(&value[1], &cidr);
 
     if (rc == NGX_ERROR) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"",
                            &value[1]);
+        return NGX_CONF_ERROR;
+    }
+
+    if (cidr.family != AF_INET) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "\"realip_from\" supports IPv4 only");
         return NGX_CONF_ERROR;
     }
 
@@ -264,8 +319,35 @@ ngx_http_realip_from(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                            "low address bits of %V are meaningless", &value[1]);
     }
 
-    from->mask = in_cidr.mask;
-    from->addr = in_cidr.addr;
+    from->mask = cidr.u.in.mask;
+    from->addr = cidr.u.in.addr;
+
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_realip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_realip_loc_conf_t *rlcf = conf;
+
+    ngx_str_t  *value;
+
+    value = cf->args->elts;
+
+    if (ngx_strcmp(value[1].data, "X-Real-IP") == 0) {
+        rlcf->type = NGX_HTTP_REALIP_XREALIP;
+        return NGX_CONF_OK;
+    }
+
+    if (ngx_strcmp(value[1].data, "X-Forwarded-For") == 0) {
+        rlcf->type = NGX_HTTP_REALIP_XFWD;
+        return NGX_CONF_OK;
+    }
+
+    rlcf->type = NGX_HTTP_REALIP_HEADER;
+    rlcf->hash = ngx_hash_strlow(value[1].data, value[1].data, value[1].len);
+    rlcf->header = value[1];
 
     return NGX_CONF_OK;
 }
@@ -285,9 +367,11 @@ ngx_http_realip_create_loc_conf(ngx_conf_t *cf)
      * set by ngx_pcalloc():
      *
      *     conf->from = NULL;
+     *     conf->hash = 0;
+     *     conf->header = { 0, NULL };
      */
 
-    conf->xfwd = NGX_CONF_UNSET_UINT;
+    conf->type = NGX_CONF_UNSET_UINT;
 
     return conf;
 }
@@ -303,7 +387,12 @@ ngx_http_realip_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->from = prev->from;
     }
 
-    ngx_conf_merge_uint_value(conf->xfwd, prev->xfwd, 0);
+    ngx_conf_merge_uint_value(conf->type, prev->type, NGX_HTTP_REALIP_XREALIP);
+
+    if (conf->header.len == 0) {
+        conf->hash = prev->hash;
+        conf->header = prev->header;
+    }
 
     return NGX_CONF_OK;
 }

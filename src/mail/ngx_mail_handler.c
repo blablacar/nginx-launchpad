@@ -21,25 +21,27 @@ static void ngx_mail_ssl_handshake_handler(ngx_connection_t *c);
 void
 ngx_mail_init_connection(ngx_connection_t *c)
 {
-    in_addr_t             in_addr;
-    socklen_t             len;
-    ngx_uint_t            i;
-    struct sockaddr_in    sin;
-    ngx_mail_log_ctx_t   *ctx;
-    ngx_mail_in_port_t   *imip;
-    ngx_mail_in_addr_t   *imia;
-    ngx_mail_session_t   *s;
+    ngx_uint_t             i;
+    ngx_mail_port_t       *port;
+    struct sockaddr       *sa;
+    struct sockaddr_in    *sin;
+    ngx_mail_log_ctx_t    *ctx;
+    ngx_mail_in_addr_t    *addr;
+    ngx_mail_session_t    *s;
+    ngx_mail_addr_conf_t  *addr_conf;
+#if (NGX_HAVE_INET6)
+    struct sockaddr_in6   *sin6;
+    ngx_mail_in6_addr_t   *addr6;
+#endif
+
 
     /* find the server configuration for the address:port */
 
     /* AF_INET only */
 
-    imip = c->listening->servers;
-    imia = imip->addrs;
+    port = c->listening->servers;
 
-    i = 0;
-
-    if (imip->naddrs > 1) {
+    if (port->naddrs > 1) {
 
         /*
          * There are several addresses on this port and one of them
@@ -49,34 +51,68 @@ ngx_mail_init_connection(ngx_connection_t *c)
          * AcceptEx() already gave this address.
          */
 
-#if (NGX_WIN32)
-        if (c->local_sockaddr) {
-            in_addr =
-                   ((struct sockaddr_in *) c->local_sockaddr)->sin_addr.s_addr;
-
-        } else
-#endif
-        {
-            len = sizeof(struct sockaddr_in);
-            if (getsockname(c->fd, (struct sockaddr *) &sin, &len) == -1) {
-                ngx_connection_error(c, ngx_socket_errno,
-                                     "getsockname() failed");
-                ngx_mail_close_connection(c);
-                return;
-            }
-
-            in_addr = sin.sin_addr.s_addr;
+        if (ngx_connection_local_sockaddr(c, NULL, 0) != NGX_OK) {
+            ngx_mail_close_connection(c);
+            return;
         }
 
-        /* the last address is "*" */
+        sa = c->local_sockaddr;
 
-        for ( /* void */ ; i < imip->naddrs - 1; i++) {
-            if (in_addr == imia[i].addr) {
-                break;
+        switch (sa->sa_family) {
+
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            sin6 = (struct sockaddr_in6 *) sa;
+
+            addr6 = port->addrs;
+
+            /* the last address is "*" */
+
+            for (i = 0; i < port->naddrs - 1; i++) {
+                if (ngx_memcmp(&addr6[i].addr6, &sin6->sin6_addr, 16) == 0) {
+                    break;
+                }
             }
+
+            addr_conf = &addr6[i].conf;
+
+            break;
+#endif
+
+        default: /* AF_INET */
+            sin = (struct sockaddr_in *) sa;
+
+            addr = port->addrs;
+
+            /* the last address is "*" */
+
+            for (i = 0; i < port->naddrs - 1; i++) {
+                if (addr[i].addr == sin->sin_addr.s_addr) {
+                    break;
+                }
+            }
+
+            addr_conf = &addr[i].conf;
+
+            break;
+        }
+
+    } else {
+        switch (c->local_sockaddr->sa_family) {
+
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            addr6 = port->addrs;
+            addr_conf = &addr6[0].conf;
+            break;
+#endif
+
+        default: /* AF_INET */
+            addr = port->addrs;
+            addr_conf = &addr[0].conf;
+            break;
         }
     }
-
 
     s = ngx_pcalloc(c->pool, sizeof(ngx_mail_session_t));
     if (s == NULL) {
@@ -84,10 +120,10 @@ ngx_mail_init_connection(ngx_connection_t *c)
         return;
     }
 
-    s->main_conf = imia[i].ctx->main_conf;
-    s->srv_conf = imia[i].ctx->srv_conf;
+    s->main_conf = addr_conf->ctx->main_conf;
+    s->srv_conf = addr_conf->ctx->srv_conf;
 
-    s->addr_text = &imia[i].addr_text;
+    s->addr_text = &addr_conf->addr_text;
 
     c->data = s;
     s->connection = c;
@@ -124,7 +160,7 @@ ngx_mail_init_connection(ngx_connection_t *c)
         return;
     }
 
-    if (imia[i].ssl) {
+    if (addr_conf->ssl) {
 
         c->log->action = "SSL handshaking";
 
@@ -356,21 +392,22 @@ ngx_mail_auth_plain(ngx_mail_session_t *s, ngx_connection_t *c, ngx_uint_t n)
 
 
 ngx_int_t
-ngx_mail_auth_login_username(ngx_mail_session_t *s, ngx_connection_t *c)
+ngx_mail_auth_login_username(ngx_mail_session_t *s, ngx_connection_t *c,
+    ngx_uint_t n)
 {
     ngx_str_t  *arg;
 
     arg = s->args.elts;
 
     ngx_log_debug1(NGX_LOG_DEBUG_MAIL, c->log, 0,
-                   "mail auth login username: \"%V\"", &arg[0]);
+                   "mail auth login username: \"%V\"", &arg[n]);
 
-    s->login.data = ngx_pnalloc(c->pool, ngx_base64_decoded_length(arg[0].len));
+    s->login.data = ngx_pnalloc(c->pool, ngx_base64_decoded_length(arg[n].len));
     if (s->login.data == NULL){
         return NGX_ERROR;
     }
 
-    if (ngx_decode_base64(&s->login, &arg[0]) != NGX_OK) {
+    if (ngx_decode_base64(&s->login, &arg[n]) != NGX_OK) {
         ngx_log_error(NGX_LOG_INFO, c->log, 0,
             "client sent invalid base64 encoding in AUTH LOGIN command");
         return NGX_MAIL_PARSE_INVALID_COMMAND;
@@ -513,7 +550,7 @@ ngx_mail_send(ngx_event_t *wev)
     }
 
     if (s->out.len == 0) {
-        if (ngx_handle_write_event(c->write, 0) == NGX_ERROR) {
+        if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
             ngx_mail_close_connection(c);
         }
 
@@ -552,7 +589,7 @@ ngx_mail_send(ngx_event_t *wev)
 
     ngx_add_timer(c->write, cscf->timeout);
 
-    if (ngx_handle_write_event(c->write, 0) == NGX_ERROR) {
+    if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
         ngx_mail_close_connection(c);
         return;
     }
@@ -579,7 +616,7 @@ ngx_mail_read_command(ngx_mail_session_t *s, ngx_connection_t *c)
     }
 
     if (n == NGX_AGAIN) {
-        if (ngx_handle_read_event(c->read, 0) == NGX_ERROR) {
+        if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
             ngx_mail_session_internal_server_error(s);
             return NGX_ERROR;
         }

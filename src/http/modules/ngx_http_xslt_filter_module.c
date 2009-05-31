@@ -15,6 +15,10 @@
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 
+#if (NGX_HAVE_EXSLT)
+#include <libexslt/exslt.h>
+#endif
+
 
 #ifndef NGX_HTTP_XSLT_REUSE_DTD
 #define NGX_HTTP_XSLT_REUSE_DTD  1
@@ -34,14 +38,8 @@ typedef struct {
 
 
 typedef struct {
-    ngx_array_t         *lengths;
-    ngx_array_t         *values;
-} ngx_http_xslt_param_t;
-
-
-typedef struct {
     xsltStylesheetPtr    stylesheet;
-    ngx_array_t          params;       /* ngx_http_xslt_param_t */
+    ngx_array_t          params;       /* ngx_http_complex_value_t */
 } ngx_http_xslt_sheet_t;
 
 
@@ -66,7 +64,6 @@ typedef struct {
 
 static ngx_int_t ngx_http_xslt_send(ngx_http_request_t *r,
     ngx_http_xslt_filter_ctx_t *ctx, ngx_buf_t *b);
-static ngx_int_t ngx_http_xslt_filter_internal_error(ngx_http_request_t *r);
 static ngx_int_t ngx_http_xslt_add_chunk(ngx_http_request_t *r,
     ngx_http_xslt_filter_ctx_t *ctx, ngx_buf_t *b);
 
@@ -322,14 +319,15 @@ ngx_http_xslt_send(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
     ctx->done = 1;
 
     if (b == NULL) {
-        return ngx_http_xslt_filter_internal_error(r);
+        return ngx_http_filter_finalize_request(r, NULL,
+                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
     }
 
     cln = ngx_pool_cleanup_add(r->pool, 0);
 
     if (cln == NULL) {
         ngx_free(b->pos);
-        return ngx_http_special_response_handler(r,
+        return ngx_http_filter_finalize_request(r, NULL,
                                                NGX_HTTP_INTERNAL_SERVER_ERROR);
     }
 
@@ -358,22 +356,6 @@ ngx_http_xslt_send(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
     out.next = NULL;
 
     return ngx_http_next_body_filter(r, &out);
-}
-
-
-static ngx_int_t
-ngx_http_xslt_filter_internal_error(ngx_http_request_t *r)
-{
-    ngx_int_t  rc;
-
-    /* clear the modules contexts */
-    ngx_memzero(r->ctx, sizeof(void *) * ngx_http_max_module);
-
-    rc = ngx_http_special_response_handler(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-
-    /* NGX_ERROR resets any pending data */
-
-    return (rc == NGX_OK) ? NGX_ERROR : rc;
 }
 
 
@@ -855,6 +837,8 @@ ngx_http_xslt_apply_stylesheet(ngx_http_request_t *r,
         r->headers_out.content_type.data = (u_char *) "text/html";
     }
 
+    r->headers_out.content_type_lowcase = NULL;
+
     return b;
 }
 
@@ -863,30 +847,25 @@ static ngx_int_t
 ngx_http_xslt_params(ngx_http_request_t *r, ngx_http_xslt_filter_ctx_t *ctx,
     ngx_array_t *params)
 {
-    u_char                 *p, *last, *value, *dst, *src, **s;
-    size_t                  len;
-    ngx_uint_t              i;
-    ngx_str_t               string;
-    ngx_http_xslt_param_t  *param;
+    u_char                    *p, *last, *value, *dst, *src, **s;
+    size_t                     len;
+    ngx_uint_t                 i;
+    ngx_str_t                  string;
+    ngx_http_complex_value_t  *param;
 
     param = params->elts;
 
     for (i = 0; i < params->nelts; i++) {
 
-        if (ngx_http_script_run(r, &string, param[i].lengths->elts, 1,
-                                param[i].values->elts)
-            == NULL)
-        {
+        if (ngx_http_complex_value(r, &param[i], &string) != NGX_OK) {
             return NGX_ERROR;
         }
-
-        last = string.data + string.len - 1;
-        *last = '\0';
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "xslt filter param: \"%s\"", string.data);
 
         p = string.data;
+        last = string.data + string.len - 1;
 
         while (p && *p) {
 
@@ -1069,8 +1048,8 @@ ngx_http_xslt_stylesheet(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_pool_cleanup_t                *cln;
     ngx_http_xslt_file_t              *file;
     ngx_http_xslt_sheet_t             *sheet;
-    ngx_http_xslt_param_t             *param;
-    ngx_http_script_compile_t          sc;
+    ngx_http_complex_value_t          *param;
+    ngx_http_compile_complex_value_t   ccv;
     ngx_http_xslt_filter_main_conf_t  *xmcf;
 
     value = cf->args->elts;
@@ -1138,7 +1117,7 @@ found:
     }
 
     if (ngx_array_init(&sheet->params, cf->pool, n - 2,
-                       sizeof(ngx_http_xslt_param_t))
+                       sizeof(ngx_http_complex_value_t))
         != NGX_OK)
     {
         return NGX_CONF_ERROR;
@@ -1151,22 +1130,17 @@ found:
             return NGX_CONF_ERROR;
         }
 
-        param->lengths = NULL;
-        param->values = NULL;
+        ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
-        ngx_memzero(&sc, sizeof(ngx_http_script_compile_t));
+        ccv.cf = cf;
+        ccv.value = &value[i];
+        ccv.complex_value = param;
+        ccv.zero = 1;
 
-        sc.cf = cf;
-        sc.source = &value[i];
-        sc.lengths = &param->lengths;
-        sc.values = &param->values;
-        sc.variables = ngx_http_script_variables_count(&value[i]);
-        sc.complete_lengths = 1;
-        sc.complete_values = 1;
-
-        if (ngx_http_script_compile(&sc) != NGX_OK) {
+        if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
+
     }
 
     return NGX_CONF_OK;
@@ -1268,6 +1242,10 @@ static ngx_int_t
 ngx_http_xslt_filter_init(ngx_conf_t *cf)
 {
     xmlInitParser();
+
+#if (NGX_HAVE_EXSLT)
+    exsltRegisterAll();
+#endif
 
     ngx_http_next_header_filter = ngx_http_top_header_filter;
     ngx_http_top_header_filter = ngx_http_xslt_header_filter;

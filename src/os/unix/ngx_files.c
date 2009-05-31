@@ -255,6 +255,25 @@ ngx_open_dir(ngx_str_t *name, ngx_dir_t *dir)
 
 
 ngx_int_t
+ngx_read_dir(ngx_dir_t *dir)
+{
+    dir->de = readdir(dir->dir);
+
+    if (dir->de) {
+#if (NGX_HAVE_D_TYPE)
+        dir->type = dir->de->d_type;
+        dir->valid_type = dir->type ? 1 : 0;
+#else
+        dir->valid_type = 0;
+#endif
+        return NGX_OK;
+    }
+
+    return NGX_ERROR;
+}
+
+
+ngx_int_t
 ngx_open_glob(ngx_glob_t *gl)
 {
     int  n;
@@ -368,7 +387,7 @@ ngx_unlock_fd(ngx_fd_t fd)
 #if (NGX_HAVE_O_DIRECT)
 
 ngx_int_t
-ngx_directio(ngx_fd_t fd)
+ngx_directio_on(ngx_fd_t fd)
 {
     int  flags;
 
@@ -379,6 +398,68 @@ ngx_directio(ngx_fd_t fd)
     }
 
     return fcntl(fd, F_SETFL, flags | O_DIRECT);
+}
+
+
+ngx_int_t
+ngx_directio_off(ngx_fd_t fd)
+{
+    int  flags;
+
+    flags = fcntl(fd, F_GETFL);
+
+    if (flags == -1) {
+        return -1;
+    }
+
+    return fcntl(fd, F_SETFL, flags & ~O_DIRECT);
+}
+
+#endif
+
+
+#if (NGX_HAVE_STATFS)
+
+size_t
+ngx_fs_bsize(u_char *name)
+{
+    struct statfs  fs;
+
+    if (statfs((char *) name, &fs) == -1) {
+        return 512;
+    }
+
+    if ((fs.f_bsize % 512) != 0) {
+        return 512;
+    }
+
+    return (size_t) fs.f_bsize;
+}
+
+#elif (NGX_HAVE_STATVFS)
+
+size_t
+ngx_fs_bsize(u_char *name)
+{
+    struct statvfs  fs;
+
+    if (statvfs((char *) name, &fs) == -1) {
+        return 512;
+    }
+
+    if ((fs.f_frsize % 512) != 0) {
+        return 512;
+    }
+
+    return (size_t) fs.f_frsize;
+}
+
+#else
+
+size_t
+ngx_fs_bsize(u_char *name)
+{
+    return 512;
 }
 
 #endif

@@ -60,12 +60,12 @@ ngx_module_t  ngx_http_flv_module = {
 static ngx_int_t
 ngx_http_flv_handler(ngx_http_request_t *r)
 {
-    u_char                    *p, *n, *last;
+    u_char                    *last;
     off_t                      start, len;
     size_t                     root;
     ngx_int_t                  rc;
     ngx_uint_t                 level, i;
-    ngx_str_t                  path;
+    ngx_str_t                  path, value;
     ngx_log_t                 *log;
     ngx_buf_t                 *b;
     ngx_chain_t                out[2];
@@ -80,7 +80,6 @@ ngx_http_flv_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    /* TODO: Win32 */
     if (r->zero_in_uri) {
         return NGX_DECLINED;
     }
@@ -144,7 +143,7 @@ ngx_http_flv_handler(ngx_http_request_t *r)
 
         if (rc != NGX_HTTP_NOT_FOUND || clcf->log_not_found) {
             ngx_log_error(level, log, of.err,
-                          ngx_open_file_n " \"%s\" failed", path.data);
+                          "%s \"%s\" failed", of.failed, path.data);
         }
 
         return rc;
@@ -160,25 +159,17 @@ ngx_http_flv_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    r->root_tested = 1;
+    r->root_tested = !r->error_page;
 
     start = 0;
     len = of.size;
     i = 1;
 
     if (r->args.len) {
-        p = (u_char *) ngx_strnstr(r->args.data, "start=", r->args.len);
 
-        if (p) {
-            p += 6;
+        if (ngx_http_arg(r, (u_char *) "start", 5, &value) == NGX_OK) {
 
-            for (n = p; n < r->args.data + r->args.len; n++) {
-                if (*n == '&') {
-                    break;
-                }
-            }
-
-            start = ngx_atoof(p, n - p);
+            start = ngx_atoof(value.data, value.len);
 
             if (start == NGX_ERROR || start >= len) {
                 start = 0;
@@ -244,6 +235,7 @@ ngx_http_flv_handler(ngx_http_request_t *r)
     b->file->fd = of.fd;
     b->file->name = path;
     b->file->log = log;
+    b->file->directio = of.is_directio;
 
     out[1].buf = b;
     out[1].next = NULL;

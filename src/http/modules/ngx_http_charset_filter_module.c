@@ -224,7 +224,8 @@ ngx_http_charset_header_filter(ngx_http_request_t *r)
 
     if (r == r->main) {
 
-        if (r->headers_out.content_encoding
+        if (!r->ignore_content_encoding
+            && r->headers_out.content_encoding
             && r->headers_out.content_encoding->value.len)
         {
             return ngx_http_next_header_filter(r);
@@ -540,12 +541,6 @@ ngx_http_charset_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
             if (ngx_buf_size(b) != 0) {
                 break;
             }
-
-#if (NGX_HAVE_WRITE_ZEROCOPY)
-            if (b->zerocopy_busy) {
-                break;
-            }
-#endif
 
             ctx->busy = cl->next;
 
@@ -1427,19 +1422,21 @@ ngx_http_charset_create_main_conf(ngx_conf_t *cf)
     }
 
     if (ngx_array_init(&mcf->charsets, cf->pool, 2, sizeof(ngx_http_charset_t))
-        == NGX_ERROR)
+        != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }
 
     if (ngx_array_init(&mcf->tables, cf->pool, 1,
-                       sizeof(ngx_http_charset_tables_t)) == NGX_ERROR)
+                       sizeof(ngx_http_charset_tables_t))
+        != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }
 
     if (ngx_array_init(&mcf->recodes, cf->pool, 2,
-                       sizeof(ngx_http_charset_recode_t)) == NGX_ERROR)
+                       sizeof(ngx_http_charset_recode_t))
+        != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }

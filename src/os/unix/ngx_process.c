@@ -13,6 +13,7 @@
 typedef struct {
      int     signo;
      char   *signame;
+     char   *name;
      void  (*handler)(int signo);
 } ngx_signal_t;
 
@@ -36,39 +37,45 @@ ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 ngx_signal_t  signals[] = {
     { ngx_signal_value(NGX_RECONFIGURE_SIGNAL),
       "SIG" ngx_value(NGX_RECONFIGURE_SIGNAL),
+      "reload",
       ngx_signal_handler },
 
     { ngx_signal_value(NGX_REOPEN_SIGNAL),
       "SIG" ngx_value(NGX_REOPEN_SIGNAL),
+      "reopen",
       ngx_signal_handler },
 
     { ngx_signal_value(NGX_NOACCEPT_SIGNAL),
       "SIG" ngx_value(NGX_NOACCEPT_SIGNAL),
+      "",
       ngx_signal_handler },
 
     { ngx_signal_value(NGX_TERMINATE_SIGNAL),
       "SIG" ngx_value(NGX_TERMINATE_SIGNAL),
+      "stop",
       ngx_signal_handler },
 
     { ngx_signal_value(NGX_SHUTDOWN_SIGNAL),
       "SIG" ngx_value(NGX_SHUTDOWN_SIGNAL),
+      "quit",
       ngx_signal_handler },
 
     { ngx_signal_value(NGX_CHANGEBIN_SIGNAL),
       "SIG" ngx_value(NGX_CHANGEBIN_SIGNAL),
+      "",
       ngx_signal_handler },
 
-    { SIGALRM, "SIGALRM", ngx_signal_handler },
+    { SIGALRM, "SIGALRM", "", ngx_signal_handler },
 
-    { SIGINT, "SIGINT", ngx_signal_handler },
+    { SIGINT, "SIGINT", "", ngx_signal_handler },
 
-    { SIGIO, "SIGIO", ngx_signal_handler },
+    { SIGIO, "SIGIO", "", ngx_signal_handler },
 
-    { SIGCHLD, "SIGCHLD", ngx_signal_handler },
+    { SIGCHLD, "SIGCHLD", "", ngx_signal_handler },
 
-    { SIGPIPE, "SIGPIPE, SIG_IGN", SIG_IGN },
+    { SIGPIPE, "SIGPIPE, SIG_IGN", "", SIG_IGN },
 
-    { 0, NULL, NULL }
+    { 0, NULL, "", NULL }
 };
 
 
@@ -494,10 +501,16 @@ ngx_process_get_status(void)
         }
 
         if (WTERMSIG(status)) {
+#ifdef WCOREDUMP
             ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
                           "%s %P exited on signal %d%s",
                           process, pid, WTERMSIG(status),
                           WCOREDUMP(status) ? " (core dumped)" : "");
+#else
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
+                          "%s %P exited on signal %d",
+                          process, pid, WTERMSIG(status));
+#endif
 
         } else {
             ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
@@ -533,4 +546,24 @@ ngx_debug_point(void)
     case NGX_DEBUG_POINTS_ABORT:
         ngx_abort();
     }
+}
+
+
+ngx_int_t
+ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_int_t pid)
+{
+    ngx_signal_t  *sig;
+
+    for (sig = signals; sig->signo != 0; sig++) {
+        if (ngx_strcmp(name, sig->name) == 0) {
+            if (kill(pid, sig->signo) != -1) {
+                return 0;
+            }
+
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
+                          "kill(%P, %d) failed", pid, sig->signo);
+        }
+    }
+
+    return 1;
 }

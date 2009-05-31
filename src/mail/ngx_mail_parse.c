@@ -746,7 +746,7 @@ ngx_mail_smtp_parse_command(ngx_mail_session_t *s)
                 s->arg_end = p;
                 goto done;
             default:
-                if (s->args.nelts <= 2) {
+                if (s->args.nelts <= 10) {
                     state = sw_argument;
                     s->arg_start = p;
                     break;
@@ -846,6 +846,10 @@ ngx_mail_auth_parse(ngx_mail_session_t *s, ngx_connection_t *c)
 
             if (s->args.nelts == 1) {
                 return NGX_MAIL_AUTH_LOGIN;
+            }
+
+            if (s->args.nelts == 2) {
+                return NGX_MAIL_AUTH_LOGIN_USERNAME;
             }
 
             return NGX_MAIL_PARSE_INVALID_COMMAND;

@@ -607,7 +607,7 @@ sendfile(r, filename, offset = -1, bytes = 0)
 
     ngx_http_request_t        *r;
     char                      *filename;
-    int                        offset;
+    off_t                      offset;
     size_t                     bytes;
     ngx_str_t                  path;
     ngx_buf_t                 *b;
@@ -662,7 +662,7 @@ sendfile(r, filename, offset = -1, bytes = 0)
         }
 
         ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
-                      ngx_open_file_n " \"%s\" failed", filename);
+                      "%s \"%s\" failed", of.failed, filename);
         XSRETURN_EMPTY;
     }
 
@@ -681,6 +681,7 @@ sendfile(r, filename, offset = -1, bytes = 0)
 
     b->file->fd = of.fd;
     b->file->log = r->connection->log;
+    b->file->directio = of.is_directio;
 
     (void) ngx_http_perl_output(r, b);
 

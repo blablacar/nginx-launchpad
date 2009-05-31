@@ -89,7 +89,6 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    /* TODO: Win32 */
     if (r->zero_in_uri) {
         return NGX_DECLINED;
     }
@@ -153,7 +152,7 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
         }
 
         ngx_log_error(level, log, of.err,
-                      ngx_open_file_n " \"%s\" failed", path.data);
+                      "%s \"%s\" failed", of.failed, path.data);
 
         return NGX_DECLINED;
     }
@@ -176,7 +175,7 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
 
 #endif
 
-    r->root_tested = 1;
+    r->root_tested = !r->error_page;
 
     rc = ngx_http_discard_request_body(r);
 
@@ -206,6 +205,7 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
     h->value.data = (u_char *) "gzip";
 
     r->headers_out.content_encoding = h;
+    r->ignore_content_encoding = 1;
 
     /* we need to allocate all before the header would be sent */
 
@@ -235,6 +235,7 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
     b->file->fd = of.fd;
     b->file->name = path;
     b->file->log = log;
+    b->file->directio = of.is_directio;
 
     out.buf = b;
     out.next = NULL;

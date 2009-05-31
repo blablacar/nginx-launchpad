@@ -442,7 +442,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
     ecf = (*cf)[ngx_event_core_module.ctx_index];
 
-    if (!ngx_test_config) {
+    if (!ngx_test_config && ngx_process <= NGX_PROCESS_MASTER) {
         ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
                       "using the \"%s\" event method", ecf->name);
     }
@@ -506,6 +506,8 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 #endif
 
     shm.size = size;
+    shm.name.len = sizeof("nginx_shared_zone");
+    shm.name.data = (u_char *) "nginx_shared_zone";
     shm.log = cycle->log;
 
     if (ngx_shm_alloc(&shm) != NGX_OK) {
@@ -535,7 +537,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
 #endif
 
-    *ngx_connection_counter = 1;
+    (void) ngx_atomic_cmp_set(ngx_connection_counter, 0, 1);
 
     ngx_log_debug2(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "counter: %p, %d",
@@ -774,6 +776,10 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
             rev->handler = ngx_event_acceptex;
 
+            if (ngx_use_accept_mutex) {
+                continue;
+            }
+
             if (ngx_add_event(rev, 0, NGX_IOCP_ACCEPT) == NGX_ERROR) {
                 return NGX_ERROR;
             }
@@ -789,6 +795,10 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
         } else {
             rev->handler = ngx_event_accept;
+
+            if (ngx_use_accept_mutex) {
+                continue;
+            }
 
             if (ngx_add_event(rev, NGX_READ_EVENT, 0) == NGX_ERROR) {
                 return NGX_ERROR;
@@ -1040,18 +1050,16 @@ ngx_event_debug_connection(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t          *value;
     ngx_event_debug_t  *dc;
     struct hostent     *h;
-    ngx_inet_cidr_t     in_cidr;
+    ngx_cidr_t          cidr;
 
     value = cf->args->elts;
-
-    /* AF_INET only */
 
     dc = ngx_array_push(&ecf->debug_connection);
     if (dc == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    rc = ngx_ptocidr(&value[1], &in_cidr);
+    rc = ngx_ptocidr(&value[1], &cidr);
 
     if (rc == NGX_DONE) {
         ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
@@ -1060,8 +1068,18 @@ ngx_event_debug_connection(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (rc == NGX_OK) {
-        dc->mask = in_cidr.mask;
-        dc->addr = in_cidr.addr;
+
+        /* AF_INET only */
+
+        if (cidr.family != AF_INET) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "\"debug_connection\" supports IPv4 only");
+            return NGX_CONF_ERROR;
+        }
+
+        dc->mask = cidr.u.in.mask;
+        dc->addr = cidr.u.in.addr;
+
         return NGX_CONF_OK;
     }
 

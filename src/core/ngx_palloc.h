@@ -14,7 +14,6 @@
 
 /*
  * NGX_MAX_ALLOC_FROM_POOL should be (ngx_pagesize - 1), i.e. 4095 on x86.
- * On FreeBSD 5.x it allows to use the zero copy sending.
  * On Windows NT it decreases a number of locked pages in a kernel.
  */
 #define NGX_MAX_ALLOC_FROM_POOL  (ngx_pagesize - 1)
@@ -73,6 +72,7 @@ void *ngx_calloc(size_t size, ngx_log_t *log);
 
 ngx_pool_t *ngx_create_pool(size_t size, ngx_log_t *log);
 void ngx_destroy_pool(ngx_pool_t *pool);
+void ngx_reset_pool(ngx_pool_t *pool);
 
 void *ngx_palloc(ngx_pool_t *pool, size_t size);
 void *ngx_pnalloc(ngx_pool_t *pool, size_t size);
@@ -82,6 +82,7 @@ ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p);
 
 
 ngx_pool_cleanup_t *ngx_pool_cleanup_add(ngx_pool_t *p, size_t size);
+void ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd);
 void ngx_pool_cleanup_file(void *data);
 void ngx_pool_delete_file(void *data);
 

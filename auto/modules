@@ -65,6 +65,13 @@ if [ $HTTP != YES ]; then
 fi
 
 
+if [ $HTTP_CACHE = YES ]; then
+    USE_MD5=YES
+    have=NGX_HTTP_CACHE . auto/have
+    HTTP_SRCS="$HTTP_SRCS $HTTP_FILE_CACHE_SRCS"
+fi
+
+
 if [ $HTTP_SSI = YES ]; then
     HTTP_POSTPONE=YES
 fi
@@ -81,6 +88,7 @@ fi
 #     ngx_http_dav_module
 #     ngx_http_autoindex_module
 #     ngx_http_index_module
+#     ngx_http_random_index_module
 #
 #     ngx_http_access_module
 #     ngx_http_realip_module
@@ -96,6 +104,7 @@ fi
 #     ngx_http_charset_filter
 #     ngx_http_ssi_filter
 #         ngx_http_xslt_filter
+#         ngx_http_image_filter_filter
 #         ngx_http_sub_filter
 #         ngx_http_addition_filter
 #         ngx_http_userid_filter
@@ -140,6 +149,12 @@ if [ $HTTP_XSLT = YES ]; then
     HTTP_SRCS="$HTTP_SRCS $HTTP_XSLT_SRCS"
 fi
 
+if [ $HTTP_IMAGE_FILTER = YES ]; then
+    USE_LIBGD=YES
+    HTTP_FILTER_MODULES="$HTTP_FILTER_MODULES $HTTP_IMAGE_FILTER_MODULE"
+    HTTP_SRCS="$HTTP_SRCS $HTTP_IMAGE_SRCS"
+fi
+
 if [ $HTTP_SUB = YES ]; then
     HTTP_FILTER_MODULES="$HTTP_FILTER_MODULES $HTTP_SUB_FILTER_MODULE"
     HTTP_SRCS="$HTTP_SRCS $HTTP_SUB_SRCS"
@@ -177,6 +192,12 @@ fi
 
 HTTP_MODULES="$HTTP_MODULES $HTTP_INDEX_MODULE"
 
+if [ $HTTP_RANDOM_INDEX = YES ]; then
+    have=NGX_HTTP_RANDOM_INDEX . auto/have
+    HTTP_MODULES="$HTTP_MODULES $HTTP_RANDOM_INDEX_MODULE"
+    HTTP_SRCS="$HTTP_SRCS $HTTP_RANDOM_INDEX_SRCS"
+fi
+
 if [ $HTTP_AUTH_BASIC = YES ]; then
     have=NGX_HTTP_AUTH_BASIC . auto/have
     have=NGX_CRYPT . auto/have
@@ -194,6 +215,11 @@ fi
 if [ $HTTP_LIMIT_ZONE = YES ]; then
     HTTP_MODULES="$HTTP_MODULES $HTTP_LIMIT_ZONE_MODULE"
     HTTP_SRCS="$HTTP_SRCS $HTTP_LIMIT_ZONE_SRCS"
+fi
+
+if [ $HTTP_LIMIT_REQ = YES ]; then
+    HTTP_MODULES="$HTTP_MODULES $HTTP_LIMIT_REQ_MODULE"
+    HTTP_SRCS="$HTTP_SRCS $HTTP_LIMIT_REQ_SRCS"
 fi
 
 if [ $HTTP_REALIP = YES ]; then
@@ -277,6 +303,12 @@ if [ $HTTP_BROWSER = YES ]; then
     HTTP_SRCS="$HTTP_SRCS $HTTP_BROWSER_SRCS"
 fi
 
+if [ $HTTP_SECURE_LINK = YES ]; then
+    USE_MD5=YES
+    HTTP_MODULES="$HTTP_MODULES $HTTP_SECURE_LINK_MODULE"
+    HTTP_SRCS="$HTTP_SRCS $HTTP_SECURE_LINK_SRCS"
+fi
+
 if [ $HTTP_FLV = YES ]; then
     HTTP_MODULES="$HTTP_MODULES $HTTP_FLV_MODULE"
     HTTP_SRCS="$HTTP_SRCS $HTTP_FLV_SRCS"
@@ -286,11 +318,6 @@ if [ $HTTP_UPSTREAM_IP_HASH = YES ]; then
     HTTP_MODULES="$HTTP_MODULES $HTTP_UPSTREAM_IP_HASH_MODULE"
     HTTP_SRCS="$HTTP_SRCS $HTTP_UPSTREAM_IP_HASH_SRCS"
 fi
-
-# STUB
-#USE_MD5=YES
-#HTTP_SRCS="$HTTP_SRCS $HTTP_CACHE_SRCS"
-#HTTP_SRCS="$HTTP_SRCS $HTTP_FILE_CACHE_SRCS"
 
 if [ $HTTP_STUB_STATUS = YES ]; then
     have=NGX_STAT_STUB . auto/have
