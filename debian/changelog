@@ -1,3 +1,25 @@
+nginx (0.7.61-1) unstable; urgency=low
+
+  * New upstream version:
+    *) Bugfix: nginx could not be built --without-http-cache; the bug had 
+       appeared in 0.7.60.
+    *) Bugfix: a segmentation fault occurred in worker process, if a 
+       backend 401 error was intercepted and the backend did not set the 
+       "WWW-Authenticate" response header line.
+       Thanks to Eugene Mychlo.
+    *) Feature: the "keepalive_requests" directive.
+    *) Bugfix: in open_file_cache and proxy/fastcgi cache interaction on 
+       start up.
+    *) Bugfix: open_file_cache might cache open file descriptors too long.
+    *) Bugfix: XLST filter did not work in subrequests.
+  * Fix "gzip_disable in default conf for old IE", adding ignore rules for
+    certain MSIE versions in the default configuration (Closes: #540025)
+  * Fix "init.d: Config test before allowing a restart" adding a function
+    and calling it before reloading, restarting and starting (Closes: #539778)
+  * Drops path for pidof call in postinst script.
+
+ -- Jose Parrella <bureado@debian.org>  Wed, 05 Aug 2009 14:00:11 -0500
+
 nginx (0.7.59-1) unstable; urgency=low
 
   * New upstream release, first in Debian for the 0.7 branch. Among other

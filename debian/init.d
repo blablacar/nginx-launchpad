@@ -24,9 +24,19 @@ fi
 
 set -e
 
+test_nginx_config() {
+  if nginx -t > /dev/null 2>&1
+  then
+    return 0
+  else
+    return $?
+  fi
+}
+
 case "$1" in
   start)
 	echo -n "Starting $DESC: "
+        test_nginx_config
 	start-stop-daemon --start --quiet --pidfile /var/run/$NAME.pid \
 		--exec $DAEMON -- $DAEMON_OPTS || true
 	echo "$NAME."
@@ -42,19 +52,21 @@ case "$1" in
 	start-stop-daemon --stop --quiet --pidfile \
 		/var/run/$NAME.pid --exec $DAEMON || true
 	sleep 1
+        test_nginx_config
 	start-stop-daemon --start --quiet --pidfile \
 		/var/run/$NAME.pid --exec $DAEMON -- $DAEMON_OPTS || true
 	echo "$NAME."
 	;;
   reload)
         echo -n "Reloading $DESC configuration: "
+        test_nginx_config
         start-stop-daemon --stop --signal HUP --quiet --pidfile /var/run/$NAME.pid \
             --exec $DAEMON || true
         echo "$NAME."
         ;;
   configtest)
         echo -n "Testing $DESC configuration: "
-        if nginx -t > /dev/null 2>&1
+        if test_nginx_config
         then
           echo "$NAME."
         else

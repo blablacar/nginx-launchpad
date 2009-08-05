@@ -19,7 +19,7 @@ esac
 
 if [ -x /etc/init.d/nginx ]
 then
-  if [ -f /var/run/nginx.pid ] && /bin/pidof /usr/sbin/nginx >/dev/null
+  if [ -f /var/run/nginx.pid ] && pidof /usr/sbin/nginx >/dev/null
   then
     echo "Trying a soft restart"
     NGX_PID=`cat /var/run/nginx.pid`

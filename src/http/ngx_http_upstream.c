@@ -577,8 +577,17 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     rc = ngx_http_file_cache_open(r);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http upstream cache: %i u:%ui", rc, c->uses);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "http upstream cache: %i", rc);
+
+    if (rc == NGX_HTTP_CACHE_UPDATING) {
+        if (u->conf->cache_use_stale & NGX_HTTP_UPSTREAM_FT_UPDATING) {
+            rc = NGX_OK;
+
+        } else {
+            rc = NGX_HTTP_CACHE_STALE;
+        }
+    }
 
     if (rc == NGX_OK) {
 
@@ -1564,8 +1573,9 @@ ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
 
         if (err_page[i].status == status) {
 
-            if (status == NGX_HTTP_UNAUTHORIZED) {
-
+            if (status == NGX_HTTP_UNAUTHORIZED
+                && u->headers_in.www_authenticate)
+            {
                 h = ngx_list_push(&r->headers_out.headers);
 
                 if (h == NULL) {
@@ -4076,7 +4086,12 @@ ngx_http_upstream_hide_headers_hash(ngx_conf_t *cf,
     {
         conf->hide_headers_hash = prev->hide_headers_hash;
 
-        if (conf->hide_headers_hash.buckets) {
+        if (conf->hide_headers_hash.buckets
+#if (NGX_HTTP_CACHE)
+            && ((conf->cache == NULL) == (prev->cache == NULL))
+#endif
+           )
+        {
             return NGX_OK;
         }
 
