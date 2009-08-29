@@ -24,6 +24,8 @@ fi
 
 set -e
 
+. /lib/lsb/init-functions
+
 test_nginx_config() {
   if nginx -t > /dev/null 2>&1
   then
@@ -73,8 +75,11 @@ case "$1" in
           exit $?
         fi
         ;;
+  status)
+	status_of_proc -p /var/run/$NAME.pid "$DAEMON" nginx && exit 0 || exit $?
+	;;
   *)
-	echo "Usage: $NAME {start|stop|restart|reload|force-reload|configtest}" >&2
+	echo "Usage: $NAME {start|stop|restart|reload|force-reload|status|configtest}" >&2
 	exit 1
 	;;
 esac

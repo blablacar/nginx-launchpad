@@ -1,3 +1,14 @@
+nginx (0.7.61-2) unstable; urgency=low
+
+  * debian/control: bumped Standards-Version to 3.8.3, no changes needed.
+  * debian/init.d: added status action. (Closes: #541228)
+  * debian/rules:
+    - added -with-http_gzip_static_module. (Closes: #541229)
+    - use the switch --with-cc-opt="-m32 -mcpu=ultrasparc" on sparc.
+      (Closes: #543571)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Sat, 29 Aug 2009 17:03:44 +0200
+
 nginx (0.7.61-1) unstable; urgency=low
 
   * New upstream version:
