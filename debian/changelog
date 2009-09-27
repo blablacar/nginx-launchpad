@@ -1,3 +1,10 @@
+nginx (0.7.62-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/rules: added --with-ipv6. (Closes: #547249)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Sun, 27 Sep 2009 22:25:16 +0200
+
 nginx (0.7.61-2) unstable; urgency=low
 
   * debian/control: bumped Standards-Version to 3.8.3, no changes needed.
