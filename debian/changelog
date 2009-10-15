@@ -1,3 +1,13 @@
+nginx (0.7.62-2) unstable; urgency=low
+
+  * debian/rules: added --with-mail and --with-mail_ssl_module.
+  * debian/patches/nginx-upstream-fair.dpatch: added support for the
+    nginx-upstream-fair module. (Closes: #521447)
+  * debian/patches/dlopen.dpatch: applied patch to remove the unnecesssary link
+    to libdl. (Closes: #540599)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Thu, 15 Oct 2009 18:32:00 +0000
+
 nginx (0.7.62-1) unstable; urgency=low
 
   * New upstream release.
