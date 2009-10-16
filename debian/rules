@@ -40,7 +40,8 @@ endif
         --with-mail \
         --with-mail_ssl_module \
 	    --with-ipv6 \
-        --add-module=$(CURDIR)/modules/nginx-upstream-fair
+        --add-module=$(CURDIR)/modules/nginx-upstream-fair \
+        $(CONFIGURE_OPTS)
 
 build: config.status
 	$(MAKE) build

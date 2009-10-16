@@ -1,3 +1,9 @@
+nginx (0.7.62-3) unstable; urgency=low
+
+  * debian/rules: fix the FTBFS on sparc.
+
+ -- Fabio Tranchitella <kobold@debian.org>  Fri, 16 Oct 2009 06:39:22 +0000
+
 nginx (0.7.62-2) unstable; urgency=low
 
   * debian/rules: added --with-mail and --with-mail_ssl_module.
