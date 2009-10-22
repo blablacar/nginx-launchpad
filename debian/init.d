@@ -27,7 +27,7 @@ set -e
 . /lib/lsb/init-functions
 
 test_nginx_config() {
-  if nginx -t > /dev/null 2>&1
+  if nginx -t
   then
     return 0
   else

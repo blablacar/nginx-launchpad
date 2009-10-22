@@ -1,3 +1,12 @@
+nginx (0.7.62-4) unstable; urgency=low
+
+  * debian/conf/nginx.conf: commented out the mail proxy example.
+    (Closes: #551682)
+  * debian/init.d: do not redirect the output of nginx -t.
+    (Closes: #551683)
+
+ -- Fabio Tranchitella <kobold@debian.org>  Thu, 22 Oct 2009 19:50:05 +0200
+
 nginx (0.7.62-3) unstable; urgency=low
 
   * debian/rules: fix the FTBFS on sparc.
