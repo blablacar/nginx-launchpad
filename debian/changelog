@@ -1,3 +1,30 @@
+nginx (0.7.64-1) unstable; urgency=medium
+
+  [Kartik Mistry]
+  * Urgency set to medium due to security issue
+  * New upstream release (Closes: #557602)
+    + fixes SSL renegotiation vuln CVE-2009-3555 (Closes: #557873)
+  * debian/nginx.1:
+    + Corrected homepage entry (Closes: #556617)
+    + Minor whitespace and empty line cleanups, added SEE ALSO section. Used
+      .TP instead of .br, Added missing options, and this should
+      (Closes: #556616)
+  * debian/copyright:
+    + Used © instead of deprecated (C) symbol
+    + Formatted some texts
+  * debian/control:
+    + Added myself as uploader
+    + Wrapped and rearranged Build-Depends for better readability
+  * debian/patches/dlopen.dpatch:
+    + Fixed patch name in comment
+    + Added missing DP comment from changelog
+  * debian/rules:
+    + Minor fixes related to formatting of file and whitespaces
+  * debian/watch:
+    + Removed comments out of it
+
+ -- Kartik Mistry <kartik@debian.org>  Fri, 27 Nov 2009 11:10:18 +0530
+
 nginx (0.7.63-1) unstable; urgency=low
 
   * New upstream release.
