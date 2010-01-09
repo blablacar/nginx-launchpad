@@ -1,3 +1,23 @@
+nginx (0.7.64-2) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/rules:
+    + Used dh_prep instead of dh_clean -k
+  * debian/control:
+    + Added ${misc:Depends} in Depends
+  * Added patch for adding debug package, Thanks to Matthew Palmer
+    <mpalmer@debian.org> (Closes: #563339)
+  * debian/copyright:
+    + Added missing copyright owners for Debian package and fixed year and
+    licence doesn't point to versionless symlink
+
+  [Fabio Tranchitella]
+  * debian/init.d:
+    + Added patch from Wouter de Bie to add $DAEMON_OPTS in
+    test_nginx_config()
+
+ -- Kartik Mistry <kartik@debian.org>  Sat, 09 Jan 2010 11:15:59 +0530
+
 nginx (0.7.64-1) unstable; urgency=medium
 
   [Kartik Mistry]

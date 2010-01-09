@@ -67,7 +67,7 @@ endif
 install:
 	dh_testdir
 	dh_testroot
-	dh_clean -k
+	dh_prep
 	dh_installdirs
 	dh_install
 
@@ -82,7 +82,7 @@ binary-arch: install
 	dh_installman debian/nginx.1
 	dh_installlogrotate
 	dh_link
-	dh_strip
+	dh_strip --dbg-package=nginx-dbg
 	dh_compress
 	dh_fixperms
 	dh_installdeb
