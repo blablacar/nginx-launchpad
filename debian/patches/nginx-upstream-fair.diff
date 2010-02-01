@@ -1,10 +1,6 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## nginx-upstream-fair.dpatch by Fabio Tranchitella <kobold@debian.org>
-##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: nginx-upstream-fair module
+Description: Patch for nginx upstream fair module
+Author: Fabio Tranchitella <kobold@debian.org>
 
-@DPATCH@
 diff -urN nginx/modules/nginx-upstream-fair/config nginx.debian/modules/nginx-upstream-fair/config
 --- nginx/modules/nginx-upstream-fair/config	1970-01-01 00:00:00.000000000 +0000
 +++ nginx.debian/modules/nginx-upstream-fair/config	2009-10-15 18:10:40.000000000 +0000

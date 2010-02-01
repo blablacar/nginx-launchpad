@@ -2,8 +2,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          nginx
-# Required-Start:    $all
-# Required-Stop:     $all
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: starts the nginx web server

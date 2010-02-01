@@ -1,3 +1,17 @@
+nginx (0.7.64-3) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/conf/sites-available/default:
+    + Added patch to fix default virtual host, Thanks to Thomas Venieris
+     <mot@freemail.gr> (Closes: #564726)
+  * debian/init.d:
+    + Added dependency on $remote_fs in Required-Start and Required-Stop
+      (Closes: #566862)
+  * Converted package to use 3.0 (quilt) source format
+  * Updated to Standards-Version 3.8.4
+
+ -- Kartik Mistry <kartik@debian.org>  Mon, 01 Feb 2010 23:44:21 +0530
+
 nginx (0.7.64-2) unstable; urgency=low
 
   [Kartik Mistry]

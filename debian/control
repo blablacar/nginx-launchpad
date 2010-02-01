@@ -5,12 +5,11 @@ Maintainer: Jose Parrella <bureado@debian.org>
 Uploaders: Fabio Tranchitella <kobold@debian.org>,
  Kartik Mistry <kartik@debian.org>
 Build-Depends: debhelper (>= 7),
-               dpatch,
                autotools-dev,
                libssl-dev,
                libpcre3-dev,
                zlib1g-dev
-Standards-Version: 3.8.3
+Standards-Version: 3.8.4
 Homepage: http://nginx.net
 Vcs-Svn: svn://svn.debian.org/svn/collab-maint/deb-maint/nginx/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/collab-maint/deb-maint/nginx/trunk
