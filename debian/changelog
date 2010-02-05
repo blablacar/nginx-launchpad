@@ -1,3 +1,16 @@
+nginx (0.7.65-1) unstable; urgency=low
+
+  [Kartik Mistry]
+  * New upstream release
+  * debian/init.d:
+    + $local_fs $remote_fs $network $syslog is what we need in Required-Start
+    and Required-Stop (Closes: #568238)
+  * debian/copyright:
+    + Updated package copyright year
+    + Updated license text to make same as upstream license
+
+ -- Kartik Mistry <kartik@debian.org>  Fri, 05 Feb 2010 11:20:28 +0530
+
 nginx (0.7.64-3) unstable; urgency=low
 
   [Kartik Mistry]
