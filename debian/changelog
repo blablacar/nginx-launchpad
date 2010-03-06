@@ -1,3 +1,13 @@
+nginx (0.7.65-2) unstable; urgency=low
+
+  * debian/README.Debian:
+    + Added explanation about not installing files in /var/www/
+      (Closes: #572513)
+  * debian/rules:
+    + Readded realip module support (Closes: #507419)
+
+ -- Kartik Mistry <kartik@debian.org>  Sat, 06 Mar 2010 13:14:48 +0530
+
 nginx (0.7.65-1) unstable; urgency=low
 
   [Kartik Mistry]
