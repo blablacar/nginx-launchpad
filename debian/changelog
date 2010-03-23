@@ -1,3 +1,12 @@
+nginx (0.7.65-3) unstable; urgency=medium
+
+  [Kartik Mistry]
+  * Urgency set to medium due to Release Goal
+  * debian/conf/sites-available/default:
+    + Listen for both IPv4 and IPv6 addresses by default (Closes: #574983)
+
+ -- Kartik Mistry <kartik@debian.org>  Tue, 23 Mar 2010 10:30:18 +0530
+
 nginx (0.7.65-2) unstable; urgency=low
 
   * debian/README.Debian:
