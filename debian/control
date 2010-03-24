@@ -6,6 +6,7 @@ Uploaders: Fabio Tranchitella <kobold@debian.org>,
  Kartik Mistry <kartik@debian.org>
 Build-Depends: debhelper (>= 7),
                autotools-dev,
+               libgeoip-dev,
                libssl-dev,
                libpcre3-dev,
                zlib1g-dev

@@ -5,8 +5,9 @@
 # statements for each of your virtual hosts
 
 server {
-	listen [::]:80; ## for both ipv4 and ipv6
-	#listen [::]:80 default ipv6only=on; ## uncomment this if u want nginx just listen at ipv6
+
+	listen   80; ## listen for ipv4
+	listen   [::]:80 default ipv6only=on; ## listen for ipv6
 
 	server_name  localhost;
 

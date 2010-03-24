@@ -1,3 +1,18 @@
+nginx (0.7.65-4) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/conf/sites-available/default:
+    + Really listen for both IPv4 and IPv6 addresses. Thanks to Nikolaus
+      Schulz <microschulz@web.de> for notice (Closes: #574983)
+  * debian/control, debian/rules:
+    + Added GeoIP support, Thanks to Caetano Carezzato
+      <caetano@vision.ime.usp.br> (Closes: #575280)
+  * debian/conf/mime.types:
+    + Added svg entry to mime.types, Jeremy Lal <kapouer@melix.org>
+      (Closes: #575155)
+
+ -- Kartik Mistry <kartik@debian.org>  Thu, 25 Mar 2010 00:21:50 +0530
+
 nginx (0.7.65-3) unstable; urgency=medium
 
   [Kartik Mistry]

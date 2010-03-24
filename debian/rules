@@ -39,6 +39,7 @@ endif
 	    --with-mail \
 	    --with-mail_ssl_module \
 	    --with-ipv6 \
+	    --with-http_geoip_module \
 	    --add-module=$(CURDIR)/modules/nginx-upstream-fair \
             $(CONFIGURE_OPTS)
 
