@@ -1,3 +1,12 @@
+nginx (0.7.65-5) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/patches/fix_reloading_ipv6.diff:
+    + Added patch to fix reloading with IPv6 addresses, Thanks to
+      Matthias-Christian Ott <ott@mirix.org> for patch (Closes: #577456)
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 14 Apr 2010 11:36:48 +0530
+
 nginx (0.7.65-4) unstable; urgency=low
 
   [Kartik Mistry]
