@@ -1,3 +1,18 @@
+nginx (0.7.65-6) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/README.Debian:
+    + Fixed typo and somewhat better wordings
+  * debian/conf/mime.types:
+    + Added entry to support 7zip files (Closes: #580423)
+  * debian/init.d:
+    + Do not print config testing info until an error found, Thanks to Ubuntu
+      bug 568293
+  * debian/copyright:
+    + Updated as per DEP-5 specification
+
+ -- Kartik Mistry <kartik@debian.org>  Sat, 22 May 2010 01:41:33 +0530
+
 nginx (0.7.65-5) unstable; urgency=low
 
   [Kartik Mistry]

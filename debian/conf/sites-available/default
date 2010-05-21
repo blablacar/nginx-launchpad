@@ -14,7 +14,7 @@ server {
 	access_log  /var/log/nginx/localhost.access.log;
 
 	location / {
-		root   /var/www/nginx-default;
+		root   /var/www;
 		index  index.html index.htm;
 	}
 

@@ -32,6 +32,7 @@ types {
     application/vnd.ms-powerpoint         ppt;
     application/vnd.wap.wmlc              wmlc;
     application/vnd.wap.xhtml+xml         xhtml;
+    application/x-7z-compressed           7z;
     application/x-cocoa                   cco;
     application/x-java-archive-diff       jardiff;
     application/x-java-jnlp-file          jnlp;

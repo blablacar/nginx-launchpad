@@ -1,8 +1,8 @@
 README for Debian
 -----------------
 
-  Files under /var/www/ is not supported as per Debian Policy.
-  See: http://lintian.debian.org/tags/dir-or-file-in-var-www.html and,
+  Files under /var/www/ are not supported as per Debian Policy.
+  Please see: http://lintian.debian.org/tags/dir-or-file-in-var-www.html and,
   http://www.pathname.com/fhs/pub/fhs-2.3.html#THEVARHIERARCHY for more
   details and explanations.
 
