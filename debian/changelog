@@ -1,3 +1,9 @@
+nginx (0.7.67-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 16 Jun 2010 01:26:51 +0530
+
 nginx (0.7.65-7) unstable; urgency=low
 
   [Kartik Mistry]
