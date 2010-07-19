@@ -1,3 +1,17 @@
+nginx (0.7.67-2) unstable; urgency=low
+
+  * debian/conf/sites-available/default:
+    + Removed reference to SSLv2 protocol (Closes: #589139)
+  * debian/control:
+    + Updated Standards-Version to 3.9.0
+  * debian/copyright:
+    + Don't point to BSD license file, included exact upstream version of
+      license text
+    + Added missing copyright owner for contrib/ scripts
+    + debian/* license is same as upstream now as discussed with co-maintainers
+
+ -- Kartik Mistry <kartik@debian.org>  Mon, 19 Jul 2010 10:36:32 +0530
+
 nginx (0.7.67-1) unstable; urgency=low
 
   * New upstream release
