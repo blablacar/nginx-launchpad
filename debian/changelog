@@ -1,3 +1,13 @@
+nginx (0.7.67-3) unstable; urgency=low
+
+  * debian/rules:
+    + Readded the configure option --with-mail_ssl_module, Thanks to Roland
+      Rosenfeld <roland@spinnaker.de> (Closes: #590815)
+  * debian/control:
+    + Updated Standards-Version to 3.9.1 (no changes needed)
+
+ -- Kartik Mistry <kartik@debian.org>  Thu, 29 Jul 2010 21:41:52 +0530
+
 nginx (0.7.67-2) unstable; urgency=low
 
   * debian/conf/sites-available/default:

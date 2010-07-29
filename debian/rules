@@ -40,6 +40,7 @@ endif
 	    --with-http_sub_module \
 	    --with-ipv6 \
 	    --with-mail \
+	    --with-mail_ssl_module \
 	    --add-module=$(CURDIR)/modules/nginx-upstream-fair \
             $(CONFIGURE_OPTS)
 
