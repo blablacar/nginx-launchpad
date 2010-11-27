@@ -52,7 +52,7 @@ static ngx_command_t  ngx_http_rewrite_commands[] = {
 
     { ngx_string("return"),
       NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
-                       |NGX_CONF_TAKE1,
+                       |NGX_CONF_TAKE12,
       ngx_http_rewrite_return,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -294,9 +294,9 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_rewrite_loc_conf_t  *lcf = conf;
 
-    ngx_str_t                         *value, err;
-    ngx_int_t                          n;
+    ngx_str_t                         *value;
     ngx_uint_t                         last;
+    ngx_regex_compile_t                rc;
     ngx_http_script_code_pt           *code;
     ngx_http_script_compile_t          sc;
     ngx_http_script_regex_code_t      *regex;
@@ -313,15 +313,16 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    err.len = NGX_MAX_CONF_ERRSTR;
-    err.data = errstr;
+    ngx_memzero(&rc, sizeof(ngx_regex_compile_t));
+
+    rc.pattern = value[1];
+    rc.err.len = NGX_MAX_CONF_ERRSTR;
+    rc.err.data = errstr;
 
     /* TODO: NGX_REGEX_CASELESS */
 
-    regex->regex = ngx_regex_compile(&value[1], 0, cf->pool, &err);
-
+    regex->regex = ngx_http_regex_compile(cf, &rc);
     if (regex->regex == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s", err.data);
         return NGX_CONF_ERROR;
     }
 
@@ -391,37 +392,11 @@ ngx_http_rewrite(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     regex = sc.main;
 
-    regex->ncaptures = sc.ncaptures;
     regex->size = sc.size;
     regex->args = sc.args;
 
     if (sc.variables == 0 && !sc.dup_capture) {
         regex->lengths = NULL;
-    }
-
-    n = ngx_regex_capture_count(regex->regex);
-
-    if (n < 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           ngx_regex_capture_count_n " failed for "
-                           "pattern \"%V\"", &value[1]);
-        return NGX_CONF_ERROR;
-    }
-
-    if (regex->ncaptures > (ngx_uint_t) n) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "pattern \"%V\" has less captures "
-                           "than referrenced in substitution \"%V\"",
-                           &value[1], &value[2]);
-        return NGX_CONF_ERROR;
-    }
-
-    if (regex->ncaptures < (ngx_uint_t) n) {
-        regex->ncaptures = (ngx_uint_t) n;
-    }
-
-    if (regex->ncaptures) {
-        regex->ncaptures = (regex->ncaptures + 1) * 3;
     }
 
     regex_end = ngx_http_script_add_code(lcf->codes,
@@ -458,8 +433,10 @@ ngx_http_rewrite_return(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_rewrite_loc_conf_t  *lcf = conf;
 
-    ngx_str_t                      *value;
-    ngx_http_script_return_code_t  *ret;
+    u_char                            *p;
+    ngx_str_t                         *value, *v;
+    ngx_http_script_return_code_t     *ret;
+    ngx_http_compile_complex_value_t   ccv;
 
     ret = ngx_http_script_start_code(cf->pool, &lcf->codes,
                                      sizeof(ngx_http_script_return_code_t));
@@ -469,12 +446,46 @@ ngx_http_rewrite_return(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    ret->code = ngx_http_script_return_code;
-    ret->null = (uintptr_t) NULL;
+    ngx_memzero(ret, sizeof(ngx_http_script_return_code_t));
 
-    ret->status = ngx_atoi(value[1].data, value[1].len);
+    ret->code = ngx_http_script_return_code;
+
+    p = value[1].data;
+
+    ret->status = ngx_atoi(p, value[1].len);
 
     if (ret->status == (uintptr_t) NGX_ERROR) {
+
+        if (cf->args->nelts == 2
+            && (ngx_strncmp(p, "http://", sizeof("http://") - 1) == 0
+                || ngx_strncmp(p, "https://", sizeof("https://") - 1) == 0
+                || ngx_strncmp(p, "$scheme", sizeof("$scheme") - 1) == 0))
+        {
+            ret->status = NGX_HTTP_MOVED_TEMPORARILY;
+            v = &value[1];
+
+        } else {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid return code \"%V\"", &value[1]);
+            return NGX_CONF_ERROR;
+        }
+
+    } else {
+
+        if (cf->args->nelts == 2) {
+            return NGX_CONF_OK;
+        }
+
+        v = &value[2];
+    }
+
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+    ccv.cf = cf;
+    ccv.value = v;
+    ccv.complex_value = &ret->text;
+
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -621,8 +632,9 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
 {
     u_char                        *p;
     size_t                         len;
-    ngx_str_t                     *value, err;
-    ngx_uint_t                     cur, last, n;
+    ngx_str_t                     *value;
+    ngx_uint_t                     cur, last;
+    ngx_regex_compile_t            rc;
     ngx_http_script_code_pt       *code;
     ngx_http_script_file_code_t   *fop;
     ngx_http_script_regex_code_t  *regex;
@@ -730,15 +742,15 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
 
             ngx_memzero(regex, sizeof(ngx_http_script_regex_code_t));
 
-            err.len = NGX_MAX_CONF_ERRSTR;
-            err.data = errstr;
+            ngx_memzero(&rc, sizeof(ngx_regex_compile_t));
 
-            regex->regex = ngx_regex_compile(&value[last],
-                                  (p[len - 1] == '*') ? NGX_REGEX_CASELESS : 0,
-                                   cf->pool, &err);
+            rc.pattern = value[last];
+            rc.options = (p[len - 1] == '*') ? NGX_REGEX_CASELESS : 0;
+            rc.err.len = NGX_MAX_CONF_ERRSTR;
+            rc.err.data = errstr;
 
+            regex->regex = ngx_http_regex_compile(cf, &rc);
             if (regex->regex == NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s", err.data);
                 return NGX_CONF_ERROR;
             }
 
@@ -749,12 +761,6 @@ ngx_http_rewrite_if_condition(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf)
                 regex->negative_test = 1;
             }
             regex->name = value[last];
-
-            n = ngx_regex_capture_count(regex->regex);
-
-            if (n) {
-                regex->ncaptures = (n + 1) * 3;
-            }
 
             return NGX_CONF_OK;
         }

@@ -648,6 +648,7 @@ sendfile(r, filename, offset = -1, bytes = 0)
 
     ngx_memzero(&of, sizeof(ngx_open_file_info_t));
 
+    of.read_ahead = clcf->read_ahead;
     of.directio = clcf->directio;
     of.valid = clcf->open_file_cache_valid;
     of.min_uses = clcf->open_file_cache_min_uses;
@@ -943,6 +944,7 @@ sleep(r, sleep, next)
     ngx_add_timer(r->connection->write, sleep);
 
     r->write_event_handler = ngx_http_perl_sleep_handler;
+    r->main->count++;
 
 
 void

@@ -14,6 +14,15 @@ typedef struct {
 } ngx_http_copy_filter_conf_t;
 
 
+#if (NGX_HAVE_FILE_AIO)
+static void ngx_http_copy_aio_handler(ngx_output_chain_ctx_t *ctx,
+    ngx_file_t *file);
+static void ngx_http_copy_aio_event_handler(ngx_event_t *ev);
+#if (NGX_HAVE_AIO_SENDFILE)
+static void ngx_http_copy_aio_sendfile_event_handler(ngx_event_t *ev);
+#endif
+#endif
+
 static void *ngx_http_copy_filter_create_conf(ngx_conf_t *cf);
 static char *ngx_http_copy_filter_merge_conf(ngx_conf_t *cf,
     void *parent, void *child);
@@ -73,18 +82,17 @@ ngx_http_copy_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_int_t                     rc;
     ngx_connection_t             *c;
     ngx_output_chain_ctx_t       *ctx;
+    ngx_http_core_loc_conf_t     *clcf;
     ngx_http_copy_filter_conf_t  *conf;
 
     c = r->connection;
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "copy filter: \"%V?%V\"", &r->uri, &r->args);
+                   "http copy filter: \"%V?%V\"", &r->uri, &r->args);
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_copy_filter_module);
 
     if (ctx == NULL) {
-        conf = ngx_http_get_module_loc_conf(r, ngx_http_copy_filter_module);
-
         ctx = ngx_pcalloc(r->pool, sizeof(ngx_output_chain_ctx_t));
         if (ctx == NULL) {
             return NGX_ERROR;
@@ -92,10 +100,15 @@ ngx_http_copy_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         ngx_http_set_ctx(r, ctx, ngx_http_copy_filter_module);
 
+        conf = ngx_http_get_module_loc_conf(r, ngx_http_copy_filter_module);
+        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
         ctx->sendfile = c->sendfile;
         ctx->need_in_memory = r->main_filter_need_in_memory
                               || r->filter_need_in_memory;
         ctx->need_in_temp = r->filter_need_temporary;
+
+        ctx->alignment = clcf->directio_alignment;
 
         ctx->pool = r->pool;
         ctx->bufs = conf->bufs;
@@ -104,27 +117,142 @@ ngx_http_copy_filter(ngx_http_request_t *r, ngx_chain_t *in)
         ctx->output_filter = (ngx_output_chain_filter_pt) ngx_http_next_filter;
         ctx->filter_ctx = r;
 
+#if (NGX_HAVE_FILE_AIO)
+        if (ngx_file_aio) {
+            if (clcf->aio) {
+                ctx->aio_handler = ngx_http_copy_aio_handler;
+            }
+#if (NGX_HAVE_AIO_SENDFILE)
+            c->aio_sendfile = (clcf->aio == NGX_HTTP_AIO_SENDFILE);
+#endif
+        }
+#endif
+
         if (in && in->buf && ngx_buf_size(in->buf)) {
             r->request_output = 1;
         }
     }
 
-    rc = ngx_output_chain(ctx, in);
+#if (NGX_HAVE_FILE_AIO)
+    ctx->aio = r->aio;
+#endif
 
-    if (!c->destroyed) {
+    for ( ;; ) {
+        rc = ngx_output_chain(ctx, in);
 
         if (ctx->in == NULL) {
             r->buffered &= ~NGX_HTTP_COPY_BUFFERED;
+
         } else {
             r->buffered |= NGX_HTTP_COPY_BUFFERED;
         }
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "copy filter: %i \"%V?%V\"", rc, &r->uri, &r->args);
-    }
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                       "http copy filter: %i \"%V?%V\"", rc, &r->uri, &r->args);
 
-    return rc;
+#if (NGX_HAVE_FILE_AIO && NGX_HAVE_AIO_SENDFILE)
+
+        if (c->busy_sendfile) {
+            ssize_t                n;
+            off_t                  offset;
+            ngx_file_t            *file;
+            ngx_http_ephemeral_t  *e;
+
+            file = c->busy_sendfile->file;
+            offset = c->busy_sendfile->file_pos;
+
+            if (file->aio) {
+                c->aio_sendfile = (offset != file->aio->last_offset);
+                file->aio->last_offset = offset;
+
+                if (c->aio_sendfile == 0) {
+                    ngx_log_error(NGX_LOG_ALERT, c->log, 0,
+                                  "sendfile(%V) returned busy again",
+                                  &file->name);
+                }
+            }
+
+            c->busy_sendfile = NULL;
+            e = (ngx_http_ephemeral_t *) &r->uri_start;
+
+            n = ngx_file_aio_read(file, &e->aio_preload, 1, offset, r->pool);
+
+            if (n > 0) {
+                in = NULL;
+                continue;
+            }
+
+            rc = n;
+
+            if (file->aio) {
+                file->aio->data = r;
+                file->aio->handler = ngx_http_copy_aio_sendfile_event_handler;
+
+                r->main->blocked++;
+                r->aio = 1;
+            }
+        }
+#endif
+
+        return rc;
+    }
 }
+
+
+#if (NGX_HAVE_FILE_AIO)
+
+static void
+ngx_http_copy_aio_handler(ngx_output_chain_ctx_t *ctx, ngx_file_t *file)
+{
+    ngx_http_request_t *r;
+
+    r = ctx->filter_ctx;
+
+    file->aio->data = r;
+    file->aio->handler = ngx_http_copy_aio_event_handler;
+
+    r->main->blocked++;
+    r->aio = 1;
+    ctx->aio = 1;
+}
+
+
+static void
+ngx_http_copy_aio_event_handler(ngx_event_t *ev)
+{
+    ngx_event_aio_t     *aio;
+    ngx_http_request_t  *r;
+
+    aio = ev->data;
+    r = aio->data;
+
+    r->main->blocked--;
+    r->aio = 0;
+
+    r->connection->write->handler(r->connection->write);
+}
+
+
+#if (NGX_HAVE_AIO_SENDFILE)
+
+static void
+ngx_http_copy_aio_sendfile_event_handler(ngx_event_t *ev)
+{
+    ngx_event_aio_t     *aio;
+    ngx_http_request_t  *r;
+
+    aio = ev->data;
+    r = aio->data;
+
+    r->main->blocked--;
+    r->aio = 0;
+    ev->complete = 0;
+
+    r->connection->write->handler(r->connection->write);
+}
+
+#endif
+#endif
 
 
 static void *

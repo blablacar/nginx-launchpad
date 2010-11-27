@@ -17,20 +17,18 @@ static ngx_int_t ngx_http_init_headers_in_hash(ngx_conf_t *cf,
 static ngx_int_t ngx_http_init_phase_handlers(ngx_conf_t *cf,
     ngx_http_core_main_conf_t *cmcf);
 
-static ngx_int_t ngx_http_init_server_lists(ngx_conf_t *cf,
-    ngx_array_t *servers, ngx_array_t *ports);
-static ngx_int_t ngx_http_add_ports(ngx_conf_t *cf,
-    ngx_http_core_srv_conf_t *cscf, ngx_array_t *ports,
-    ngx_http_listen_t *listen);
 static ngx_int_t ngx_http_add_addresses(ngx_conf_t *cf,
     ngx_http_core_srv_conf_t *cscf, ngx_http_conf_port_t *port,
-    ngx_http_listen_t *listen);
+    ngx_http_listen_opt_t *lsopt);
 static ngx_int_t ngx_http_add_address(ngx_conf_t *cf,
     ngx_http_core_srv_conf_t *cscf, ngx_http_conf_port_t *port,
-    ngx_http_listen_t *listen);
-static ngx_int_t ngx_http_add_names(ngx_conf_t *cf,
+    ngx_http_listen_opt_t *lsopt);
+static ngx_int_t ngx_http_add_server(ngx_conf_t *cf,
     ngx_http_core_srv_conf_t *cscf, ngx_http_conf_addr_t *addr);
 
+static char *ngx_http_merge_servers(ngx_conf_t *cf,
+    ngx_http_core_main_conf_t *cmcf, ngx_http_module_t *module,
+    ngx_uint_t ctx_index);
 static char *ngx_http_merge_locations(ngx_conf_t *cf,
     ngx_queue_t *locations, void **loc_conf, ngx_http_module_t *module,
     ngx_uint_t ctx_index);
@@ -122,7 +120,6 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     char                        *rv;
     ngx_uint_t                   mi, m, s;
     ngx_conf_t                   pcf;
-    ngx_array_t                  ports;
     ngx_http_module_t           *module;
     ngx_http_conf_ctx_t         *ctx;
     ngx_http_core_loc_conf_t    *clcf;
@@ -269,39 +266,9 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
-        for (s = 0; s < cmcf->servers.nelts; s++) {
-
-            /* merge the server{}s' srv_conf's */
-
-            if (module->merge_srv_conf) {
-                rv = module->merge_srv_conf(cf, ctx->srv_conf[mi],
-                                            cscfp[s]->ctx->srv_conf[mi]);
-                if (rv != NGX_CONF_OK) {
-                    goto failed;
-                }
-            }
-
-            if (module->merge_loc_conf) {
-
-                /* merge the server{}'s loc_conf */
-
-                rv = module->merge_loc_conf(cf, ctx->loc_conf[mi],
-                                            cscfp[s]->ctx->loc_conf[mi]);
-                if (rv != NGX_CONF_OK) {
-                    goto failed;
-                }
-
-                /* merge the locations{}' loc_conf's */
-
-                clcf = cscfp[s]->ctx->loc_conf[ngx_http_core_module.ctx_index];
-
-                rv = ngx_http_merge_locations(cf, clcf->locations,
-                                              cscfp[s]->ctx->loc_conf,
-                                              module, mi);
-                if (rv != NGX_CONF_OK) {
-                    goto failed;
-                }
-            }
+        rv = ngx_http_merge_servers(cf, cmcf, module, mi);
+        if (rv != NGX_CONF_OK) {
+            goto failed;
         }
     }
 
@@ -362,19 +329,9 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
 
-    /*
-     * create the lists of ports, addresses and server names
-     * to find quickly the server core module configuration at run-time
-     */
-
-    if (ngx_http_init_server_lists(cf, &cmcf->servers, &ports) != NGX_OK) {
-        return NGX_CONF_ERROR;
-    }
-
-
     /* optimize the lists of ports, addresses and server names */
 
-    if (ngx_http_optimize_servers(cf, cmcf, &ports) != NGX_OK) {
+    if (ngx_http_optimize_servers(cf, cmcf, cmcf->ports) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -525,7 +482,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
             if (cmcf->phase_engine.server_rewrite_index == (ngx_uint_t) -1) {
                 cmcf->phase_engine.server_rewrite_index = n;
             }
-            checker = ngx_http_core_generic_phase;
+            checker = ngx_http_core_rewrite_phase;
 
             break;
 
@@ -542,7 +499,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
             if (cmcf->phase_engine.location_rewrite_index == (ngx_uint_t) -1) {
                 cmcf->phase_engine.location_rewrite_index = n;
             }
-            checker = ngx_http_core_generic_phase;
+            checker = ngx_http_core_rewrite_phase;
 
             break;
 
@@ -602,17 +559,83 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 
 
 static char *
+ngx_http_merge_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
+    ngx_http_module_t *module, ngx_uint_t ctx_index)
+{
+    char                        *rv;
+    ngx_uint_t                   s;
+    ngx_http_conf_ctx_t         *ctx, saved;
+    ngx_http_core_loc_conf_t    *clcf;
+    ngx_http_core_srv_conf_t   **cscfp;
+
+    cscfp = cmcf->servers.elts;
+    ctx = (ngx_http_conf_ctx_t *) cf->ctx;
+    saved = *ctx;
+    rv = NGX_CONF_OK;
+
+    for (s = 0; s < cmcf->servers.nelts; s++) {
+
+        /* merge the server{}s' srv_conf's */
+
+        ctx->srv_conf = cscfp[s]->ctx->srv_conf;
+
+        if (module->merge_srv_conf) {
+            rv = module->merge_srv_conf(cf, saved.srv_conf[ctx_index],
+                                        cscfp[s]->ctx->srv_conf[ctx_index]);
+            if (rv != NGX_CONF_OK) {
+                goto failed;
+            }
+        }
+
+        if (module->merge_loc_conf) {
+
+            /* merge the server{}'s loc_conf */
+
+            ctx->loc_conf = cscfp[s]->ctx->loc_conf;
+
+            rv = module->merge_loc_conf(cf, saved.loc_conf[ctx_index],
+                                        cscfp[s]->ctx->loc_conf[ctx_index]);
+            if (rv != NGX_CONF_OK) {
+                goto failed;
+            }
+
+            /* merge the locations{}' loc_conf's */
+
+            clcf = cscfp[s]->ctx->loc_conf[ngx_http_core_module.ctx_index];
+
+            rv = ngx_http_merge_locations(cf, clcf->locations,
+                                          cscfp[s]->ctx->loc_conf,
+                                          module, ctx_index);
+            if (rv != NGX_CONF_OK) {
+                goto failed;
+            }
+        }
+    }
+
+failed:
+
+    *ctx = saved;
+
+    return rv;
+}
+
+
+static char *
 ngx_http_merge_locations(ngx_conf_t *cf, ngx_queue_t *locations,
     void **loc_conf, ngx_http_module_t *module, ngx_uint_t ctx_index)
 {
     char                       *rv;
     ngx_queue_t                *q;
+    ngx_http_conf_ctx_t        *ctx, saved;
     ngx_http_core_loc_conf_t   *clcf;
     ngx_http_location_queue_t  *lq;
 
     if (locations == NULL) {
         return NGX_CONF_OK;
     }
+
+    ctx = (ngx_http_conf_ctx_t *) cf->ctx;
+    saved = *ctx;
 
     for (q = ngx_queue_head(locations);
          q != ngx_queue_sentinel(locations);
@@ -621,6 +644,7 @@ ngx_http_merge_locations(ngx_conf_t *cf, ngx_queue_t *locations,
         lq = (ngx_http_location_queue_t *) q;
 
         clcf = lq->exact ? lq->exact : lq->inclusive;
+        ctx->loc_conf = clcf->loc_conf;
 
         rv = module->merge_loc_conf(cf, loc_conf[ctx_index],
                                     clcf->loc_conf[ctx_index]);
@@ -634,6 +658,8 @@ ngx_http_merge_locations(ngx_conf_t *cf, ngx_queue_t *locations,
             return rv;
         }
     }
+
+    *ctx = saved;
 
     return NGX_CONF_OK;
 }
@@ -1109,72 +1135,55 @@ inclusive:
 }
 
 
-static ngx_int_t
-ngx_http_init_server_lists(ngx_conf_t *cf, ngx_array_t *servers,
-    ngx_array_t *ports)
+ngx_int_t
+ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
+    ngx_http_listen_opt_t *lsopt)
 {
-    ngx_uint_t                  s, i;
-    ngx_http_listen_t          *listen;
-    ngx_http_core_srv_conf_t  **cscfp;
+    in_port_t                   p;
+    ngx_uint_t                  i;
+    struct sockaddr            *sa;
+    struct sockaddr_in         *sin;
+    ngx_http_conf_port_t       *port;
+    ngx_http_core_main_conf_t  *cmcf;
+#if (NGX_HAVE_INET6)
+    struct sockaddr_in6        *sin6;
+#endif
 
-    if (ngx_array_init(ports, cf->temp_pool, 2, sizeof(ngx_http_conf_port_t))
-        != NGX_OK)
-    {
-        return NGX_ERROR;
-    }
+    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
-    /* "server" directives */
-
-    cscfp = servers->elts;
-    for (s = 0; s < servers->nelts; s++) {
-
-        /* "listen" directives */
-
-        listen = cscfp[s]->listen.elts;
-        for (i = 0; i < cscfp[s]->listen.nelts; i++) {
-
-            if (ngx_http_add_ports(cf, cscfp[s], ports, &listen[i]) != NGX_OK) {
-                return NGX_ERROR;
-            }
+    if (cmcf->ports == NULL) {
+        cmcf->ports = ngx_array_create(cf->temp_pool, 2,
+                                       sizeof(ngx_http_conf_port_t));
+        if (cmcf->ports == NULL) {
+            return NGX_ERROR;
         }
     }
 
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_add_ports(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
-    ngx_array_t *ports, ngx_http_listen_t *listen)
-{
-    in_port_t                 p;
-    ngx_uint_t                i;
-    struct sockaddr          *sa;
-    struct sockaddr_in       *sin;
-    ngx_http_conf_port_t     *port;
-#if (NGX_HAVE_INET6)
-    struct sockaddr_in6      *sin6;
-#endif
-
-    sa = (struct sockaddr *) &listen->sockaddr;
+    sa = &lsopt->u.sockaddr;
 
     switch (sa->sa_family) {
 
 #if (NGX_HAVE_INET6)
     case AF_INET6:
-        sin6 = (struct sockaddr_in6 *) sa;
+        sin6 = &lsopt->u.sockaddr_in6;
         p = sin6->sin6_port;
         break;
 #endif
 
+#if (NGX_HAVE_UNIX_DOMAIN)
+    case AF_UNIX:
+        p = 0;
+        break;
+#endif
+
     default: /* AF_INET */
-        sin = (struct sockaddr_in *) sa;
+        sin = &lsopt->u.sockaddr_in;
         p = sin->sin_port;
         break;
     }
 
-    port = ports->elts;
-    for (i = 0; i < ports->nelts; i++) {
+    port = cmcf->ports->elts;
+    for (i = 0; i < cmcf->ports->nelts; i++) {
 
         if (p != port[i].port || sa->sa_family != port[i].family) {
             continue;
@@ -1182,12 +1191,12 @@ ngx_http_add_ports(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
         /* a port is already in the port list */
 
-        return ngx_http_add_addresses(cf, cscf, &port[i], listen);
+        return ngx_http_add_addresses(cf, cscf, &port[i], lsopt);
     }
 
     /* add a port to the port list */
 
-    port = ngx_array_push(ports);
+    port = ngx_array_push(cmcf->ports);
     if (port == NULL) {
         return NGX_ERROR;
     }
@@ -1196,26 +1205,32 @@ ngx_http_add_ports(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
     port->port = p;
     port->addrs.elts = NULL;
 
-    return ngx_http_add_address(cf, cscf, port, listen);
+    return ngx_http_add_address(cf, cscf, port, lsopt);
 }
 
 
 static ngx_int_t
 ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
-    ngx_http_conf_port_t *port, ngx_http_listen_t *listen)
+    ngx_http_conf_port_t *port, ngx_http_listen_opt_t *lsopt)
 {
     u_char                *p;
     size_t                 len, off;
-    ngx_uint_t             i;
+    ngx_uint_t             i, default_server;
     struct sockaddr       *sa;
     ngx_http_conf_addr_t  *addr;
+#if (NGX_HAVE_UNIX_DOMAIN)
+    struct sockaddr_un    *saun;
+#endif
+#if (NGX_HTTP_SSL)
+    ngx_uint_t             ssl;
+#endif
 
     /*
      * we can not compare whole sockaddr struct's as kernel
      * may fill some fields in inherited sockaddr struct's
      */
 
-    sa = (struct sockaddr *) &listen->sockaddr;
+    sa = &lsopt->u.sockaddr;
 
     switch (sa->sa_family) {
 
@@ -1226,54 +1241,78 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
         break;
 #endif
 
+#if (NGX_HAVE_UNIX_DOMAIN)
+    case AF_UNIX:
+        off = offsetof(struct sockaddr_un, sun_path);
+        len = sizeof(saun->sun_path);
+        break;
+#endif
+
     default: /* AF_INET */
         off = offsetof(struct sockaddr_in, sin_addr);
         len = 4;
         break;
     }
 
-    p = listen->sockaddr + off;
+    p = lsopt->u.sockaddr_data + off;
 
     addr = port->addrs.elts;
 
     for (i = 0; i < port->addrs.nelts; i++) {
 
-        if (ngx_memcmp(p, (u_char *) addr[i].sockaddr + off, len) != 0) {
+        if (ngx_memcmp(p, addr[i].opt.u.sockaddr_data + off, len) != 0) {
             continue;
         }
 
         /* the address is already in the address list */
 
-        if (ngx_http_add_names(cf, cscf, &addr[i]) != NGX_OK) {
+        if (ngx_http_add_server(cf, cscf, &addr[i]) != NGX_OK) {
             return NGX_ERROR;
+        }
+
+        /* preserve default_server bit during listen options overwriting */
+        default_server = addr[i].opt.default_server;
+
+#if (NGX_HTTP_SSL)
+        ssl = lsopt->ssl || addr[i].opt.ssl;
+#endif
+
+        if (lsopt->set) {
+
+            if (addr[i].opt.set) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                        "a duplicate listen options for %s", addr[i].opt.addr);
+                return NGX_ERROR;
+            }
+
+            addr[i].opt = *lsopt;
         }
 
         /* check the duplicate "default" server for this address:port */
 
-        if (listen->conf.default_server) {
+        if (lsopt->default_server) {
 
-            if (addr[i].default_server) {
-                ngx_log_error(NGX_LOG_ERR, cf->log, 0,
-                              "the duplicate default server in %s:%ui",
-                               listen->file_name, listen->line);
-
+            if (default_server) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                        "a duplicate default server for %s", addr[i].opt.addr);
                 return NGX_ERROR;
             }
 
-            addr[i].core_srv_conf = cscf;
-            addr[i].default_server = 1;
-#if (NGX_HTTP_SSL)
-            addr[i].ssl = listen->conf.ssl;
-#endif
-            addr[i].listen_conf = &listen->conf;
+            default_server = 1;
+            addr[i].default_server = cscf;
         }
+
+        addr[i].opt.default_server = default_server;
+#if (NGX_HTTP_SSL)
+        addr[i].opt.ssl = ssl;
+#endif
 
         return NGX_OK;
     }
 
     /* add the address to the addresses list that bound to this port */
 
-    return ngx_http_add_address(cf, cscf, port, listen);
+    return ngx_http_add_address(cf, cscf, port, lsopt);
 }
 
 
@@ -1284,7 +1323,7 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
 static ngx_int_t
 ngx_http_add_address(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
-    ngx_http_conf_port_t *port, ngx_http_listen_t *listen)
+    ngx_http_conf_port_t *port, ngx_http_listen_opt_t *lsopt)
 {
     ngx_http_conf_addr_t  *addr;
 
@@ -1302,68 +1341,56 @@ ngx_http_add_address(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
         return NGX_ERROR;
     }
 
-    addr->sockaddr = (struct sockaddr *) &listen->sockaddr;
-    addr->socklen = listen->socklen;
+    addr->opt = *lsopt;
     addr->hash.buckets = NULL;
     addr->hash.size = 0;
     addr->wc_head = NULL;
     addr->wc_tail = NULL;
-    addr->names.elts = NULL;
 #if (NGX_PCRE)
     addr->nregex = 0;
     addr->regex = NULL;
 #endif
-    addr->core_srv_conf = cscf;
-    addr->default_server = listen->conf.default_server;
-    addr->bind = listen->conf.bind;
-    addr->wildcard = listen->conf.wildcard;
-#if (NGX_HTTP_SSL)
-    addr->ssl = listen->conf.ssl;
-#endif
-    addr->listen_conf = &listen->conf;
+    addr->default_server = cscf;
+    addr->servers.elts = NULL;
 
-    return ngx_http_add_names(cf, cscf, addr);
+    return ngx_http_add_server(cf, cscf, addr);
 }
 
 
-/*
- * add the server names and the server core module
- * configurations to the address:port
- */
+/* add the server core module configuration to the address:port */
 
 static ngx_int_t
-ngx_http_add_names(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
+ngx_http_add_server(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
     ngx_http_conf_addr_t *addr)
 {
-    ngx_uint_t               i;
-    ngx_http_server_name_t  *server_names, *name;
+    ngx_uint_t                  i;
+    ngx_http_core_srv_conf_t  **server;
 
-    if (addr->names.elts == NULL) {
-        if (ngx_array_init(&addr->names, cf->temp_pool, 4,
-                           sizeof(ngx_http_server_name_t))
+    if (addr->servers.elts == NULL) {
+        if (ngx_array_init(&addr->servers, cf->temp_pool, 4,
+                           sizeof(ngx_http_core_srv_conf_t *))
             != NGX_OK)
         {
             return NGX_ERROR;
         }
-    }
 
-    server_names = cscf->server_names.elts;
-
-    for (i = 0; i < cscf->server_names.nelts; i++) {
-
-        ngx_strlow(server_names[i].name.data, server_names[i].name.data,
-                   server_names[i].name.len);
-
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, cf->log, 0,
-                       "name: %V", &server_names[i].name);
-
-        name = ngx_array_push(&addr->names);
-        if (name == NULL) {
-            return NGX_ERROR;
+    } else {
+        server = addr->servers.elts;
+        for (i = 0; i < addr->servers.nelts; i++) {
+            if (server[i] == cscf) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "a duplicate listen %s", addr->opt.addr);
+                return NGX_ERROR;
+            }
         }
-
-        *name = server_names[i];
     }
+
+    server = ngx_array_push(&addr->servers);
+    if (server == NULL) {
+        return NGX_ERROR;
+    }
+
+    *server = cscf;
 
     return NGX_OK;
 }
@@ -1373,10 +1400,13 @@ static ngx_int_t
 ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
     ngx_array_t *ports)
 {
-    ngx_uint_t               s, p, a;
-    ngx_http_conf_port_t    *port;
-    ngx_http_conf_addr_t    *addr;
-    ngx_http_server_name_t  *name;
+    ngx_uint_t             p, a;
+    ngx_http_conf_port_t  *port;
+    ngx_http_conf_addr_t  *addr;
+
+    if (ports == NULL) {
+        return NGX_OK;
+    }
 
     port = ports->elts;
     for (p = 0; p < ports->nelts; p++) {
@@ -1392,23 +1422,15 @@ ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
         addr = port[p].addrs.elts;
         for (a = 0; a < port[p].addrs.nelts; a++) {
 
-            name = addr[a].names.elts;
-            for (s = 0; s < addr[a].names.nelts; s++) {
-
-                if (addr[a].core_srv_conf == name[s].core_srv_conf
+            if (addr[a].servers.nelts > 1
 #if (NGX_PCRE)
-                    && name[s].captures == 0
+                || addr[a].default_server->captures
 #endif
-                    )
-                {
-                    continue;
-                }
-
+               )
+            {
                 if (ngx_http_server_names(cf, cmcf, &addr[a]) != NGX_OK) {
                     return NGX_ERROR;
                 }
-
-                break;
             }
         }
 
@@ -1425,13 +1447,14 @@ static ngx_int_t
 ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
     ngx_http_conf_addr_t *addr)
 {
-    ngx_int_t                rc;
-    ngx_uint_t               s;
-    ngx_hash_init_t          hash;
-    ngx_hash_keys_arrays_t   ha;
-    ngx_http_server_name_t  *name;
+    ngx_int_t                   rc;
+    ngx_uint_t                  n, s;
+    ngx_hash_init_t             hash;
+    ngx_hash_keys_arrays_t      ha;
+    ngx_http_server_name_t     *name;
+    ngx_http_core_srv_conf_t  **cscfp;
 #if (NGX_PCRE)
-    ngx_uint_t               regex, i;
+    ngx_uint_t                  regex, i;
 
     regex = 0;
 #endif
@@ -1449,35 +1472,40 @@ ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
         goto failed;
     }
 
-    name = addr->names.elts;
+    cscfp = addr->servers.elts;
 
-    for (s = 0; s < addr->names.nelts; s++) {
+    for (s = 0; s < addr->servers.nelts; s++) {
+
+        name = cscfp[s]->server_names.elts;
+
+        for (n = 0; n < cscfp[s]->server_names.nelts; n++) {
 
 #if (NGX_PCRE)
-        if (name[s].regex) {
-            regex++;
-            continue;
-        }
+            if (name[n].regex) {
+                regex++;
+                continue;
+            }
 #endif
 
-        rc = ngx_hash_add_key(&ha, &name[s].name, name[s].core_srv_conf,
-                              NGX_HASH_WILDCARD_KEY);
+            rc = ngx_hash_add_key(&ha, &name[n].name, name[n].server,
+                                  NGX_HASH_WILDCARD_KEY);
 
-        if (rc == NGX_ERROR) {
-            return NGX_ERROR;
-        }
+            if (rc == NGX_ERROR) {
+                return NGX_ERROR;
+            }
 
-        if (rc == NGX_DECLINED) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                          "invalid server name or wildcard \"%V\" on %s",
-                          &name[s].name, addr->listen_conf->addr);
-            return NGX_ERROR;
-        }
+            if (rc == NGX_DECLINED) {
+                ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
+                              "invalid server name or wildcard \"%V\" on %s",
+                              &name[n].name, addr->opt.addr);
+                return NGX_ERROR;
+            }
 
-        if (rc == NGX_BUSY) {
+            if (rc == NGX_BUSY) {
             ngx_log_error(NGX_LOG_WARN, cf->log, 0,
-                          "conflicting server name \"%V\" on %s, ignored",
-                          &name[s].name, addr->listen_conf->addr);
+                              "conflicting server name \"%V\" on %s, ignored",
+                              &name[n].name, addr->opt.addr);
+            }
         }
     }
 
@@ -1546,9 +1574,16 @@ ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
         return NGX_ERROR;
     }
 
-    for (i = 0, s = 0; s < addr->names.nelts; s++) {
-        if (name[s].regex) {
-            addr->regex[i++] = name[s];
+    i = 0;
+
+    for (s = 0; s < addr->servers.nelts; s++) {
+
+        name = cscfp[s]->server_names.elts;
+
+        for (n = 0; n < cscfp[s]->server_names.nelts; n++) {
+            if (name[n].regex) {
+                addr->regex[i++] = name[n];
+            }
         }
     }
 
@@ -1572,17 +1607,17 @@ ngx_http_cmp_conf_addrs(const void *one, const void *two)
     first = (ngx_http_conf_addr_t *) one;
     second = (ngx_http_conf_addr_t *) two;
 
-    if (first->wildcard) {
+    if (first->opt.wildcard) {
         /* a wildcard address must be the last resort, shift it to the end */
         return 1;
     }
 
-    if (first->bind && !second->bind) {
+    if (first->opt.bind && !second->opt.bind) {
         /* shift explicit bind()ed addresses to the start */
         return -1;
     }
 
-    if (!first->bind && second->bind) {
+    if (!first->opt.bind && second->opt.bind) {
         /* shift explicit bind()ed addresses to the start */
         return 1;
     }
@@ -1623,8 +1658,8 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
      * implicit bindings go, and wildcard binding is in the end.
      */
 
-    if (addr[last - 1].wildcard) {
-        addr[last - 1].bind = 1;
+    if (addr[last - 1].opt.wildcard) {
+        addr[last - 1].opt.bind = 1;
         bind_wildcard = 1;
 
     } else {
@@ -1635,7 +1670,7 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
 
     while (i < last) {
 
-        if (bind_wildcard && !addr[i].bind) {
+        if (bind_wildcard && !addr[i].opt.bind) {
             i++;
             continue;
         }
@@ -1691,7 +1726,7 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
     ngx_http_core_loc_conf_t  *clcf;
     ngx_http_core_srv_conf_t  *cscf;
 
-    ls = ngx_create_listening(cf, addr->sockaddr, addr->socklen);
+    ls = ngx_create_listening(cf, &addr->opt.u.sockaddr, addr->opt.socklen);
     if (ls == NULL) {
         return NULL;
     }
@@ -1700,7 +1735,7 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
 
     ls->handler = ngx_http_init_connection;
 
-    cscf = addr->core_srv_conf;
+    cscf = addr->default_server;
     ls->pool_size = cscf->connection_pool_size;
     ls->post_accept_timeout = cscf->client_header_timeout;
 
@@ -1721,20 +1756,24 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
     }
 #endif
 
-    ls->backlog = addr->listen_conf->backlog;
-    ls->rcvbuf = addr->listen_conf->rcvbuf;
-    ls->sndbuf = addr->listen_conf->sndbuf;
+    ls->backlog = addr->opt.backlog;
+    ls->rcvbuf = addr->opt.rcvbuf;
+    ls->sndbuf = addr->opt.sndbuf;
 
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
-    ls->accept_filter = addr->listen_conf->accept_filter;
+    ls->accept_filter = addr->opt.accept_filter;
 #endif
 
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined TCP_DEFER_ACCEPT)
-    ls->deferred_accept = addr->listen_conf->deferred_accept;
+    ls->deferred_accept = addr->opt.deferred_accept;
 #endif
 
 #if (NGX_HAVE_INET6 && defined IPV6_V6ONLY)
-    ls->ipv6only = addr->listen_conf->ipv6only;
+    ls->ipv6only = addr->opt.ipv6only;
+#endif
+
+#if (NGX_HAVE_SETFIB)
+    ls->setfib = addr->opt.setfib;
 #endif
 
     return ls;
@@ -1760,11 +1799,11 @@ ngx_http_add_addrs(ngx_conf_t *cf, ngx_http_port_t *hport,
 
     for (i = 0; i < hport->naddrs; i++) {
 
-        sin = (struct sockaddr_in *) addr[i].sockaddr;
+        sin = &addr[i].opt.u.sockaddr_in;
         addrs[i].addr = sin->sin_addr.s_addr;
-        addrs[i].conf.core_srv_conf = addr[i].core_srv_conf;
+        addrs[i].conf.default_server = addr[i].default_server;
 #if (NGX_HTTP_SSL)
-        addrs[i].conf.ssl = addr[i].ssl;
+        addrs[i].conf.ssl = addr[i].opt.ssl;
 #endif
 
         if (addr[i].hash.buckets == NULL
@@ -1821,11 +1860,11 @@ ngx_http_add_addrs6(ngx_conf_t *cf, ngx_http_port_t *hport,
 
     for (i = 0; i < hport->naddrs; i++) {
 
-        sin6 = (struct sockaddr_in6 *) addr[i].sockaddr;
+        sin6 = &addr[i].opt.u.sockaddr_in6;
         addrs6[i].addr6 = sin6->sin6_addr;
-        addrs6[i].conf.core_srv_conf = addr[i].core_srv_conf;
+        addrs6[i].conf.default_server = addr[i].default_server;
 #if (NGX_HTTP_SSL)
-        addrs6[i].conf.ssl = addr[i].ssl;
+        addrs6[i].conf.ssl = addr[i].opt.ssl;
 #endif
 
         if (addr[i].hash.buckets == NULL
@@ -1871,6 +1910,10 @@ ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     types = (ngx_array_t **) (p + cmd->offset);
 
+    if (*types == (void *) -1) {
+        return NGX_CONF_OK;
+    }
+
     default_type = cmd->post;
 
     if (*types == NULL) {
@@ -1895,6 +1938,11 @@ ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     for (i = 1; i < cf->args->nelts; i++) {
+
+        if (value[i].len == 1 && value[i].data[0] == '*') {
+            *types = (void *) -1;
+            return NGX_CONF_OK;
+        }
 
         hash = ngx_hash_strlow(value[i].data, value[i].data, value[i].len);
         value[i].data[value[i].len] = '\0';
@@ -1924,13 +1972,17 @@ ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 char *
-ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t *keys, ngx_hash_t *types_hash,
-    ngx_array_t *prev_keys, ngx_hash_t *prev_types_hash,
+ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t **keys, ngx_hash_t *types_hash,
+    ngx_array_t **prev_keys, ngx_hash_t *prev_types_hash,
     ngx_str_t *default_types)
 {
     ngx_hash_init_t  hash;
 
-    if (keys) {
+    if (*keys) {
+
+        if (*keys == (void *) -1) {
+            return NGX_CONF_OK;
+        }
 
         hash.hash = types_hash;
         hash.key = NULL;
@@ -1940,7 +1992,7 @@ ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t *keys, ngx_hash_t *types_hash,
         hash.pool = cf->pool;
         hash.temp_pool = NULL;
 
-        if (ngx_hash_init(&hash, keys->elts, keys->nelts) != NGX_OK) {
+        if (ngx_hash_init(&hash, (*keys)->elts, (*keys)->nelts) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 
@@ -1949,13 +2001,17 @@ ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t *keys, ngx_hash_t *types_hash,
 
     if (prev_types_hash->buckets == NULL) {
 
-        if (prev_keys == NULL) {
+        if (*prev_keys == NULL) {
 
-            if (ngx_http_set_default_types(cf, &prev_keys, default_types)
+            if (ngx_http_set_default_types(cf, prev_keys, default_types)
                 != NGX_OK)
             {
                 return NGX_CONF_ERROR;
             }
+
+        } else if (*prev_keys == (void *) -1) {
+            *keys = *prev_keys;
+            return NGX_CONF_OK;
         }
 
         hash.hash = prev_types_hash;
@@ -1966,7 +2022,9 @@ ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t *keys, ngx_hash_t *types_hash,
         hash.pool = cf->pool;
         hash.temp_pool = NULL;
 
-        if (ngx_hash_init(&hash, prev_keys->elts, prev_keys->nelts) != NGX_OK) {
+        if (ngx_hash_init(&hash, (*prev_keys)->elts, (*prev_keys)->nelts)
+            != NGX_OK)
+        {
             return NGX_CONF_ERROR;
         }
     }

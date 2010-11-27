@@ -2,10 +2,11 @@ Description: Patch to remove unnecessary link to libdl
 Debian Bug: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=540599
 Author: Fabio Tranchitella <kobold@debian.org>
 
-diff -urN nginx-0.7.62/auto/os/features nginx-0.7.62.debian/auto/os/features
---- nginx-0.7.62/auto/os/features	2009-06-15 08:49:53.000000000 +0000
-+++ nginx-0.7.62.debian/auto/os/features	2009-10-15 18:30:58.000000000 +0000
-@@ -232,28 +232,6 @@
+Index: 0.8/auto/os/features
+===================================================================
+--- 0.8.orig/auto/os/features	2010-10-31 07:32:20.408338001 +0000
++++ 0.8/auto/os/features	2010-10-31 07:32:26.528338002 +0000
+@@ -252,28 +252,6 @@
  . auto/feature
  
  

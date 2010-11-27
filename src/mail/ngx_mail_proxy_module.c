@@ -108,7 +108,7 @@ static u_char  smtp_auth_ok[] = "235 2.0.0 OK" CRLF;
 
 
 void
-ngx_mail_proxy_init(ngx_mail_session_t *s, ngx_peer_addr_t *peer)
+ngx_mail_proxy_init(ngx_mail_session_t *s, ngx_addr_t *peer)
 {
     int                        keepalive;
     ngx_int_t                  rc;
@@ -304,8 +304,7 @@ ngx_mail_proxy_pop3_handler(ngx_event_t *rev)
 
     default:
 #if (NGX_SUPPRESS_WARN)
-        line.len = 0;
-        line.data = NULL;
+        ngx_str_null(&line);
 #endif
         break;
     }
@@ -439,8 +438,7 @@ ngx_mail_proxy_imap_handler(ngx_event_t *rev)
 
     default:
 #if (NGX_SUPPRESS_WARN)
-        line.len = 0;
-        line.data = NULL;
+        ngx_str_null(&line);
 #endif
         break;
     }
@@ -664,8 +662,7 @@ ngx_mail_proxy_smtp_handler(ngx_event_t *rev)
 
     default:
 #if (NGX_SUPPRESS_WARN)
-        line.len = 0;
-        line.data = NULL;
+        ngx_str_null(&line);
 #endif
         break;
     }

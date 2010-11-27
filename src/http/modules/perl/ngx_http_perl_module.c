@@ -168,6 +168,8 @@ ngx_http_perl_xs_init(pTHX)
 static ngx_int_t
 ngx_http_perl_handler(ngx_http_request_t *r)
 {
+    r->main->count++;
+
     ngx_http_perl_handle_request(r);
 
     return NGX_DONE;
@@ -221,16 +223,17 @@ ngx_http_perl_handle_request(ngx_http_request_t *r)
 
     }
 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "perl handler done: %i", rc);
+
     if (rc == NGX_DONE) {
+        ngx_http_finalize_request(r, rc);
         return;
     }
 
     if (rc > 600) {
         rc = NGX_OK;
     }
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "perl handler done: %i", rc);
 
     if (ctx->redirect_uri.len) {
         uri = ctx->redirect_uri;
@@ -244,11 +247,13 @@ ngx_http_perl_handle_request(ngx_http_request_t *r)
     ctx->redirect_uri.len = 0;
 
     if (ctx->done || ctx->next) {
+        ngx_http_finalize_request(r, NGX_DONE);
         return;
     }
 
     if (uri.len) {
         ngx_http_internal_redirect(r, &uri, &args);
+        ngx_http_finalize_request(r, NGX_DONE);
         return;
     }
 
@@ -472,8 +477,7 @@ ngx_http_perl_init_interpreter(ngx_conf_t *cf, ngx_http_perl_main_conf_t *pmcf)
             return NGX_CONF_ERROR;
         }
 
-        m->len = sizeof(NGX_PERL_MODULES) - 1;
-        m->data = NGX_PERL_MODULES;
+        ngx_str_set(m, NGX_PERL_MODULES);
     }
 #endif
 
@@ -699,15 +703,6 @@ ngx_http_perl_call_handler(pTHX_ ngx_http_request_t *r, HV *nginx, SV *sub,
     n = call_sv(sub, G_EVAL);
 
     SPAGAIN;
-
-    if (c->destroyed) {
-        PUTBACK;
-
-        FREETMPS;
-        LEAVE;
-
-        return NGX_DONE;
-    }
 
     if (n) {
         if (rv == NULL) {

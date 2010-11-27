@@ -11,10 +11,10 @@
 
 
 typedef struct {
-     int     signo;
-     char   *signame;
-     char   *name;
-     void  (*handler)(int signo);
+    int     signo;
+    char   *signame;
+    char   *name;
+    void  (*handler)(int signo);
 } ngx_signal_t;
 
 
@@ -72,6 +72,8 @@ ngx_signal_t  signals[] = {
     { SIGIO, "SIGIO", "", ngx_signal_handler },
 
     { SIGCHLD, "SIGCHLD", "", ngx_signal_handler },
+
+    { SIGSYS, "SIGSYS, SIG_IGN", "", SIG_IGN },
 
     { SIGPIPE, "SIGPIPE, SIG_IGN", "", SIG_IGN },
 
@@ -386,6 +388,7 @@ ngx_signal_handler(int signo)
         break;
 
     case NGX_PROCESS_WORKER:
+    case NGX_PROCESS_HELPER:
         switch (signo) {
 
         case ngx_signal_value(NGX_NOACCEPT_SIGNAL):

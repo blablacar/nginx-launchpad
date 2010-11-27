@@ -15,12 +15,12 @@ DAEMON=/usr/sbin/nginx
 NAME=nginx
 DESC=nginx
 
-test -x $DAEMON || exit 0
-
 # Include nginx defaults if available
 if [ -f /etc/default/nginx ] ; then
 	. /etc/default/nginx
 fi
+
+test -x $DAEMON || exit 0
 
 set -e
 

@@ -10,15 +10,18 @@
 
 static u_char *ngx_sprintf_num(u_char *buf, u_char *last, uint64_t ui64,
     u_char zero, ngx_uint_t hexadecimal, ngx_uint_t width);
+static ngx_int_t ngx_decode_base64_internal(ngx_str_t *dst, ngx_str_t *src,
+    const u_char *basis);
 
 
 void
 ngx_strlow(u_char *dst, u_char *src, size_t n)
 {
-    while (n--) {
+    while (n) {
         *dst = ngx_tolower(*src);
         dst++;
         src++;
+        n--;
     }
 }
 
@@ -74,7 +77,7 @@ ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src)
  *    %[0][width][u][x|X]D      int32_t/uint32_t
  *    %[0][width][u][x|X]L      int64_t/uint64_t
  *    %[0][width|m][u][x|X]A    ngx_atomic_int_t/ngx_atomic_uint_t
- *    %[0][width][.width]f      float
+ *    %[0][width][.width]f      double, max valid number fits to %18.15f
  *    %P                        ngx_pid_t
  *    %M                        ngx_msec_t
  *    %r                        rlim_t
@@ -142,12 +145,12 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
 {
     u_char                *p, zero;
     int                    d;
-    float                  f, scale;
+    double                 f, scale;
     size_t                 len, slen;
     int64_t                i64;
     uint64_t               ui64;
     ngx_msec_t             ms;
-    ngx_uint_t             width, sign, hex, max_width, frac_width, i;
+    ngx_uint_t             width, sign, hex, max_width, frac_width, n;
     ngx_str_t             *v;
     ngx_variable_value_t  *vv;
 
@@ -228,9 +231,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
             case 'V':
                 v = va_arg(args, ngx_str_t *);
 
-                len = v->len;
-                len = (buf + len < last) ? len : (size_t) (last - buf);
-
+                len = ngx_min(((size_t) (last - buf)), v->len);
                 buf = ngx_cpymem(buf, v->data, len);
                 fmt++;
 
@@ -239,9 +240,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
             case 'v':
                 vv = va_arg(args, ngx_variable_value_t *);
 
-                len = vv->len;
-                len = (buf + len < last) ? len : (size_t) (last - buf);
-
+                len = ngx_min(((size_t) (last - buf)), vv->len);
                 buf = ngx_cpymem(buf, vv->data, len);
                 fmt++;
 
@@ -256,8 +255,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
                     }
 
                 } else {
-                    len = (buf + slen < last) ? slen : (size_t) (last - buf);
-
+                    len = ngx_min(((size_t) (last - buf)), slen);
                     buf = ngx_cpymem(buf, p, len);
                 }
 
@@ -358,7 +356,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
                 break;
 
             case 'f':
-                f = (float) va_arg(args, double);
+                f = va_arg(args, double);
 
                 if (f < 0) {
                     *buf++ = '-';
@@ -377,7 +375,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
 
                     scale = 1.0;
 
-                    for (i = 0; i < frac_width; i++) {
+                    for (n = frac_width; n; n--) {
                         scale *= 10.0;
                     }
 
@@ -385,7 +383,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
                      * (int64_t) cast is required for msvc6:
                      * it can not convert uint64_t to double
                      */
-                    ui64 = (uint64_t) ((f - (int64_t) ui64) * scale);
+                    ui64 = (uint64_t) ((f - (int64_t) ui64) * scale + 0.5);
 
                     buf = ngx_sprintf_num(buf, last, ui64, '0', 0, frac_width);
                 }
@@ -876,6 +874,56 @@ ngx_atoi(u_char *line, size_t n)
 }
 
 
+/* parse a fixed point number, e.g., ngx_atofp("10.5", 4, 2) returns 1050 */
+
+ngx_int_t
+ngx_atofp(u_char *line, size_t n, size_t point)
+{
+    ngx_int_t   value;
+    ngx_uint_t  dot;
+
+    if (n == 0) {
+        return NGX_ERROR;
+    }
+
+    dot = 0;
+
+    for (value = 0; n--; line++) {
+
+        if (point == 0) {
+            return NGX_ERROR;
+        }
+
+        if (*line == '.') {
+            if (dot) {
+                return NGX_ERROR;
+            }
+
+            dot = 1;
+            continue;
+        }
+
+        if (*line < '0' || *line > '9') {
+            return NGX_ERROR;
+        }
+
+        value = value * 10 + (*line - '0');
+        point -= dot;
+    }
+
+    while (point--) {
+        value = value * 10;
+    }
+
+    if (value < 0) {
+        return NGX_ERROR;
+
+    } else {
+        return value;
+    }
+}
+
+
 ssize_t
 ngx_atosz(u_char *line, size_t n)
 {
@@ -1049,8 +1097,6 @@ ngx_encode_base64(ngx_str_t *dst, ngx_str_t *src)
 ngx_int_t
 ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src)
 {
-    size_t          len;
-    u_char         *d, *s;
     static u_char   basis64[] = {
         77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
         77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
@@ -1071,12 +1117,49 @@ ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src)
         77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77
     };
 
+    return ngx_decode_base64_internal(dst, src, basis64);
+}
+
+
+ngx_int_t
+ngx_decode_base64url(ngx_str_t *dst, ngx_str_t *src)
+{
+    static u_char   basis64[] = {
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 62, 77, 77,
+        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 77, 77, 77, 77, 77, 77,
+        77,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 77, 77, 77, 77, 63,
+        77, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 77, 77, 77, 77, 77,
+
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+        77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77
+    };
+
+    return ngx_decode_base64_internal(dst, src, basis64);
+}
+
+
+static ngx_int_t
+ngx_decode_base64_internal(ngx_str_t *dst, ngx_str_t *src, const u_char *basis)
+{
+    size_t          len;
+    u_char         *d, *s;
+
     for (len = 0; len < src->len; len++) {
         if (src->data[len] == '=') {
             break;
         }
 
-        if (basis64[src->data[len]] == 77) {
+        if (basis[src->data[len]] == 77) {
             return NGX_ERROR;
         }
     }
@@ -1089,20 +1172,20 @@ ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src)
     d = dst->data;
 
     while (len > 3) {
-        *d++ = (u_char) (basis64[s[0]] << 2 | basis64[s[1]] >> 4);
-        *d++ = (u_char) (basis64[s[1]] << 4 | basis64[s[2]] >> 2);
-        *d++ = (u_char) (basis64[s[2]] << 6 | basis64[s[3]]);
+        *d++ = (u_char) (basis[s[0]] << 2 | basis[s[1]] >> 4);
+        *d++ = (u_char) (basis[s[1]] << 4 | basis[s[2]] >> 2);
+        *d++ = (u_char) (basis[s[2]] << 6 | basis[s[3]]);
 
         s += 4;
         len -= 4;
     }
 
     if (len > 1) {
-        *d++ = (u_char) (basis64[s[0]] << 2 | basis64[s[1]] >> 4);
+        *d++ = (u_char) (basis[s[0]] << 2 | basis[s[1]] >> 4);
     }
 
     if (len > 2) {
-        *d++ = (u_char) (basis64[s[1]] << 4 | basis64[s[2]] >> 2);
+        *d++ = (u_char) (basis[s[1]] << 4 | basis[s[2]] >> 2);
     }
 
     dst->len = d - dst->data;
@@ -1253,7 +1336,7 @@ ngx_utf8_cpystrn(u_char *dst, u_char *src, size_t n, size_t len)
 uintptr_t
 ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
 {
-    ngx_uint_t      i, n;
+    ngx_uint_t      n;
     uint32_t       *escape;
     static u_char   hex[] = "0123456789abcdef";
 
@@ -1283,7 +1366,7 @@ ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
         0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
 
                     /* ?>=< ;:98 7654 3210  /.-, +*)( '&%$ #"!  */
-        0x80000869, /* 1000 0000 0000 0000  0000 1000 0110 1001 */
+        0x88000869, /* 1000 1000 0000 0000  0000 1000 0110 1001 */
 
                     /* _^]\ [ZYX WVUT SRQP  ONML KJIH GFED CBA@ */
         0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
@@ -1371,17 +1454,18 @@ ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
 
         n = 0;
 
-        for (i = 0; i < size; i++) {
+        while (size) {
             if (escape[*src >> 5] & (1 << (*src & 0x1f))) {
                 n++;
             }
             src++;
+            size--;
         }
 
         return (uintptr_t) n;
     }
 
-    for (i = 0; i < size; i++) {
+    while (size) {
         if (escape[*src >> 5] & (1 << (*src & 0x1f))) {
             *dst++ = '%';
             *dst++ = hex[*src >> 4];
@@ -1391,6 +1475,7 @@ ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
         } else {
             *dst++ = *src++;
         }
+        size--;
     }
 
     return (uintptr_t) dst;
@@ -1531,13 +1616,13 @@ uintptr_t
 ngx_escape_html(u_char *dst, u_char *src, size_t size)
 {
     u_char      ch;
-    ngx_uint_t  i, len;
+    ngx_uint_t  len;
 
     if (dst == NULL) {
 
         len = 0;
 
-        for (i = 0; i < size; i++) {
+        while (size) {
             switch (*src++) {
 
             case '<':
@@ -1555,12 +1640,13 @@ ngx_escape_html(u_char *dst, u_char *src, size_t size)
             default:
                 break;
             }
+            size--;
         }
 
         return (uintptr_t) len;
     }
 
-    for (i = 0; i < size; i++) {
+    while (size) {
         ch = *src++;
 
         switch (ch) {
@@ -1582,9 +1668,93 @@ ngx_escape_html(u_char *dst, u_char *src, size_t size)
             *dst++ = ch;
             break;
         }
+        size--;
     }
 
     return (uintptr_t) dst;
+}
+
+
+void
+ngx_str_rbtree_insert_value(ngx_rbtree_node_t *temp,
+    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
+{
+    ngx_str_node_t      *n, *t;
+    ngx_rbtree_node_t  **p;
+
+    for ( ;; ) {
+
+        n = (ngx_str_node_t *) node;
+        t = (ngx_str_node_t *) temp;
+
+        if (node->key != temp->key) {
+
+            p = (node->key < temp->key) ? &temp->left : &temp->right;
+
+        } else if (n->str.len != t->str.len) {
+
+            p = (n->str.len < t->str.len) ? &temp->left : &temp->right;
+
+        } else {
+            p = (ngx_memcmp(n->str.data, t->str.data, n->str.len) < 0)
+                 ? &temp->left : &temp->right;
+        }
+
+        if (*p == sentinel) {
+            break;
+        }
+
+        temp = *p;
+    }
+
+    *p = node;
+    node->parent = temp;
+    node->left = sentinel;
+    node->right = sentinel;
+    ngx_rbt_red(node);
+}
+
+
+ngx_str_node_t *
+ngx_str_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *val, uint32_t hash)
+{
+    ngx_int_t           rc;
+    ngx_str_node_t     *n;
+    ngx_rbtree_node_t  *node, *sentinel;
+
+    node = rbtree->root;
+    sentinel = rbtree->sentinel;
+
+    while (node != sentinel) {
+
+        n = (ngx_str_node_t *) node;
+
+        if (hash != node->key) {
+            node = (hash < node->key) ? node->left : node->right;
+            continue;
+        }
+
+        if (val->len != n->str.len) {
+            node = (val->len < n->str.len) ? node->left : node->right;
+            continue;
+        }
+
+        rc = ngx_memcmp(val->data, n->str.data, val->len);
+
+        if (rc < 0) {
+            node = node->left;
+            continue;
+        }
+
+        if (rc > 0) {
+            node = node->right;
+            continue;
+        }
+
+        return n;
+    }
+
+    return NULL;
 }
 
 

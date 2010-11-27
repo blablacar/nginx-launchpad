@@ -70,6 +70,8 @@ typedef enum {
 
 static ngx_int_t ngx_http_ssi_output(ngx_http_request_t *r,
     ngx_http_ssi_ctx_t *ctx);
+static void ngx_http_ssi_buffered(ngx_http_request_t *r,
+    ngx_http_ssi_ctx_t *ctx);
 static ngx_int_t ngx_http_ssi_parse(ngx_http_request_t *r,
     ngx_http_ssi_ctx_t *ctx);
 static ngx_str_t *ngx_http_ssi_get_variable(ngx_http_request_t *r,
@@ -346,13 +348,9 @@ ngx_http_ssi_header_filter(ngx_http_request_t *r)
     ctx->params.nalloc = NGX_HTTP_SSI_PARAMS_N;
     ctx->params.pool = r->pool;
 
-    ctx->timefmt.len = sizeof("%A, %d-%b-%Y %H:%M:%S %Z") - 1;
-    ctx->timefmt.data = (u_char *) "%A, %d-%b-%Y %H:%M:%S %Z";
-
-    ctx->errmsg.len =
-              sizeof("[an error occurred while processing the directive]") - 1;
-    ctx->errmsg.data = (u_char *)
-                     "[an error occurred while processing the directive]";
+    ngx_str_set(&ctx->timefmt, "%A, %d-%b-%Y %H:%M:%S %Z");
+    ngx_str_set(&ctx->errmsg,
+                "[an error occurred while processing the directive]");
 
     r->filter_need_in_memory = 1;
 
@@ -435,7 +433,7 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     while (ctx->in || ctx->buf) {
 
-        if (ctx->buf == NULL ){
+        if (ctx->buf == NULL) {
             ctx->buf = ctx->in->buf;
             ctx->in = ctx->in->next;
             ctx->pos = ctx->buf->pos;
@@ -797,6 +795,7 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 }
 
                 if (rc == NGX_DONE || rc == NGX_AGAIN || rc == NGX_ERROR) {
+                    ngx_http_ssi_buffered(r, ctx);
                     return rc;
                 }
             }
@@ -949,14 +948,21 @@ ngx_http_ssi_output(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx)
         }
     }
 
+    ngx_http_ssi_buffered(r, ctx);
+
+    return rc;
+}
+
+
+static void
+ngx_http_ssi_buffered(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx)
+{
     if (ctx->in || ctx->buf) {
         r->buffered |= NGX_HTTP_SSI_BUFFERED;
 
     } else {
         r->buffered &= ~NGX_HTTP_SSI_BUFFERED;
     }
-
-    return rc;
 }
 
 
@@ -1904,8 +1910,7 @@ ngx_http_ssi_include(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "ssi include: \"%V\"", uri);
 
-    args.len = 0;
-    args.data = NULL;
+    ngx_str_null(&args);
     flags = NGX_HTTP_LOG_UNSAFE;
 
     if (ngx_http_parse_unsafe_uri(r, uri, &args, &flags) != NGX_OK) {
@@ -2447,27 +2452,28 @@ ngx_http_ssi_if(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
 
     } else {
 #if (NGX_PCRE)
-        ngx_str_t     err;
-        ngx_regex_t  *regex;
-        u_char        errstr[NGX_MAX_CONF_ERRSTR];
-
-        err.len = NGX_MAX_CONF_ERRSTR;
-        err.data = errstr;
+        ngx_regex_compile_t  rgc;
+        u_char               errstr[NGX_MAX_CONF_ERRSTR];
 
         right.data[right.len] = '\0';
 
-        regex = ngx_regex_compile(&right, 0, r->pool, &err);
+        ngx_memzero(&rgc, sizeof(ngx_regex_compile_t));
 
-        if (regex == NULL) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "%s", err.data);
+        rgc.pattern = right;
+        rgc.pool = r->pool;
+        rgc.err.len = NGX_MAX_CONF_ERRSTR;
+        rgc.err.data = errstr;
+
+        if (ngx_regex_compile(&rgc) != NGX_OK) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "%V", &rgc.err);
             return NGX_HTTP_SSI_ERROR;
         }
 
-        rc = ngx_regex_exec(regex, &left, NULL, 0);
+        rc = ngx_regex_exec(rgc.regex, &left, NULL, 0);
 
-        if (rc != NGX_REGEX_NO_MATCHED && rc < 0) {
+        if (rc < NGX_REGEX_NO_MATCHED) {
             ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                          ngx_regex_exec_n " failed: %d on \"%V\" using \"%V\"",
+                          ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
                           rc, &left, &right);
             return NGX_HTTP_SSI_ERROR;
         }
@@ -2768,8 +2774,8 @@ ngx_http_ssi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_size_value(conf->min_file_chunk, prev->min_file_chunk, 1024);
     ngx_conf_merge_size_value(conf->value_len, prev->value_len, 256);
 
-    if (ngx_http_merge_types(cf, conf->types_keys, &conf->types,
-                             prev->types_keys, &prev->types,
+    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types,
+                             &prev->types_keys, &prev->types,
                              ngx_http_html_default_types)
         != NGX_OK)
     {

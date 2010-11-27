@@ -533,7 +533,7 @@ ngx_http_log_request_time(ngx_http_request_t *r, u_char *buf,
 
     ms = (ngx_msec_int_t)
              ((tp->sec - r->start_sec) * 1000 + (tp->msec - r->start_msec));
-    ms = (ms >= 0) ? ms : 0;
+    ms = ngx_max(ms, 0);
 
     return ngx_sprintf(buf, "%T.%03M", ms / 1000, ms % 1000);
 }
@@ -667,7 +667,7 @@ ngx_http_log_variable(ngx_http_request_t *r, u_char *buf, ngx_http_log_op_t *op)
 static uintptr_t
 ngx_http_log_escape(u_char *dst, u_char *src, size_t size)
 {
-    ngx_uint_t      i, n;
+    ngx_uint_t      n;
     static u_char   hex[] = "0123456789ABCDEF";
 
     static uint32_t   escape[] = {
@@ -695,17 +695,18 @@ ngx_http_log_escape(u_char *dst, u_char *src, size_t size)
 
         n = 0;
 
-        for (i = 0; i < size; i++) {
+        while (size) {
             if (escape[*src >> 5] & (1 << (*src & 0x1f))) {
                 n++;
             }
             src++;
+            size--;
         }
 
         return (uintptr_t) n;
     }
 
-    for (i = 0; i < size; i++) {
+    while (size) {
         if (escape[*src >> 5] & (1 << (*src & 0x1f))) {
             *dst++ = '\\';
             *dst++ = 'x';
@@ -716,6 +717,7 @@ ngx_http_log_escape(u_char *dst, u_char *src, size_t size)
         } else {
             *dst++ = *src++;
         }
+        size--;
     }
 
     return (uintptr_t) dst;
@@ -745,8 +747,7 @@ ngx_http_log_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    fmt->name.len = sizeof("combined") - 1;
-    fmt->name.data = (u_char *) "combined";
+    ngx_str_set(&fmt->name, "combined");
 
     fmt->flushes = NULL;
 
@@ -920,8 +921,7 @@ ngx_http_log_set_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
     } else {
-        name.len = sizeof("combined") - 1;
-        name.data = (u_char *) "combined";
+        ngx_str_set(&name, "combined");
         lmcf->combined_used = 1;
     }
 

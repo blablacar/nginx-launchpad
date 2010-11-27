@@ -3,12 +3,15 @@ Section: httpd
 Priority: optional
 Maintainer: Jose Parrella <bureado@debian.org>
 Uploaders: Fabio Tranchitella <kobold@debian.org>,
- Kartik Mistry <kartik@debian.org>
+ Kartik Mistry <kartik@debian.org>,
+ Michael Lustfield <mtecknology@ubuntu.com>
 Build-Depends: debhelper (>= 7),
                autotools-dev,
+               libgd2-noxpm-dev,
                libgeoip-dev,
                libssl-dev,
                libpcre3-dev,
+               libxslt1-dev,
                zlib1g-dev
 Standards-Version: 3.9.1
 Homepage: http://nginx.net
@@ -18,6 +21,7 @@ Vcs-Browser: http://svn.debian.org/wsvn/collab-maint/deb-maint/nginx/trunk
 Package: nginx
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, lsb-base (>= 3.2-14)
+Suggests: ufw
 Provides: httpd
 Description: small, but very powerful and efficient web server and mail proxy
  Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to

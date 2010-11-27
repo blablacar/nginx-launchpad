@@ -78,7 +78,7 @@ typedef struct {
 
      ngx_int_t                rlimit_nofile;
      ngx_int_t                rlimit_sigpending;
-     size_t                   rlimit_core;
+     off_t                    rlimit_core;
 
      int                      priority;
 
@@ -130,6 +130,7 @@ extern volatile ngx_cycle_t  *ngx_cycle;
 extern ngx_array_t            ngx_old_cycles;
 extern ngx_module_t           ngx_core_module;
 extern ngx_uint_t             ngx_test_config;
+extern ngx_uint_t             ngx_quiet_mode;
 #if (NGX_THREADS)
 extern ngx_tls_key_t          ngx_core_tls_key;
 #endif

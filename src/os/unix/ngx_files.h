@@ -18,6 +18,15 @@ typedef ino_t                    ngx_file_uniq_t;
 
 
 typedef struct {
+    u_char                      *name;
+    size_t                       size;
+    void                        *addr;
+    ngx_fd_t                     fd;
+    ngx_log_t                   *log;
+} ngx_file_mapping_t;
+
+
+typedef struct {
     DIR                         *dir;
     struct dirent               *de;
     struct stat                  info;
@@ -152,6 +161,10 @@ ngx_int_t ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s);
 #define ngx_file_uniq(sb)        (sb)->st_ino
 
 
+ngx_int_t ngx_create_file_mapping(ngx_file_mapping_t *fm);
+void ngx_close_file_mapping(ngx_file_mapping_t *fm);
+
+
 #if (NGX_HAVE_CASELESS_FILESYSTEM)
 
 #define ngx_filename_cmp(s1, s2, n)  strncasecmp((char *) s1, (char *) s2, n)
@@ -257,6 +270,28 @@ ngx_err_t ngx_unlock_fd(ngx_fd_t fd);
 #define ngx_unlock_fd_n          "fcntl(F_SETLK, F_UNLCK)"
 
 
+#if (NGX_HAVE_F_READAHEAD)
+
+#define NGX_HAVE_READ_AHEAD      1
+
+#define ngx_read_ahead(fd, n)    fcntl(fd, F_READAHEAD, (int) n)
+#define ngx_read_ahead_n         "fcntl(fd, F_READAHEAD)"
+
+#elif (NGX_HAVE_POSIX_FADVISE)
+
+#define NGX_HAVE_READ_AHEAD      1
+
+ngx_int_t ngx_read_ahead(ngx_fd_t fd, size_t n);
+#define ngx_read_ahead_n         "posix_fadvise(POSIX_FADV_SEQUENTIAL)"
+
+#else
+
+#define ngx_read_ahead(fd, n)    0
+#define ngx_read_ahead_n         "ngx_read_ahead_n"
+
+#endif
+
+
 #if (NGX_HAVE_O_DIRECT)
 
 ngx_int_t ngx_directio_on(ngx_fd_t fd);
@@ -288,6 +323,16 @@ size_t ngx_fs_bsize(u_char *name);
 #define ngx_stderr               STDERR_FILENO
 #define ngx_set_stderr(fd)       dup2(fd, STDERR_FILENO)
 #define ngx_set_stderr_n         "dup2(STDERR_FILENO)"
+
+
+#if (NGX_HAVE_FILE_AIO)
+
+ssize_t ngx_file_aio_read(ngx_file_t *file, u_char *buf, size_t size,
+    off_t offset, ngx_pool_t *pool);
+
+extern ngx_uint_t  ngx_file_aio;
+
+#endif
 
 
 #endif /* _NGX_FILES_H_INCLUDED_ */

@@ -114,10 +114,9 @@ typedef struct {
 
 typedef struct {
     ngx_http_script_code_pt     code;
-    ngx_regex_t                *regex;
+    ngx_http_regex_t           *regex;
     ngx_array_t                *lengths;
     uintptr_t                   size;
-    uintptr_t                   ncaptures;
     uintptr_t                   status;
     uintptr_t                   next;
 
@@ -160,7 +159,7 @@ typedef struct {
 typedef struct {
     ngx_http_script_code_pt     code;
     uintptr_t                   status;
-    uintptr_t                   null;
+    ngx_http_complex_value_t    text;
 } ngx_http_script_return_code_t;
 
 
@@ -208,6 +207,14 @@ void ngx_http_script_flush_complex_value(ngx_http_request_t *r,
 ngx_int_t ngx_http_complex_value(ngx_http_request_t *r,
     ngx_http_complex_value_t *val, ngx_str_t *value);
 ngx_int_t ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv);
+char *ngx_http_set_complex_value_slot(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+
+
+ngx_int_t ngx_http_test_predicates(ngx_http_request_t *r,
+    ngx_array_t *predicates);
+char *ngx_http_set_predicate_slot(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 
 ngx_uint_t ngx_http_script_variables_count(ngx_str_t *value);
 ngx_int_t ngx_http_script_compile(ngx_http_script_compile_t *sc);

@@ -685,6 +685,8 @@ ngx_master_process_exit(ngx_cycle_t *cycle)
         }
     }
 
+    ngx_close_listening_sockets(cycle);
+
     /*
      * Copy ngx_cycle->log related data to the special static exit cycle,
      * log, and log file structures enough to allow a signal handler to log.
@@ -711,6 +713,8 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 {
     ngx_uint_t         i;
     ngx_connection_t  *c;
+
+    ngx_process = NGX_PROCESS_WORKER;
 
     ngx_worker_process_init(cycle, 1);
 
@@ -827,8 +831,6 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_uint_t priority)
     ngx_core_conf_t  *ccf;
     ngx_listening_t  *ls;
 
-    ngx_process = NGX_PROCESS_WORKER;
-
     if (ngx_set_environment(cycle, NULL) == NULL) {
         /* fatal */
         exit(2);
@@ -854,13 +856,13 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_uint_t priority)
         }
     }
 
-    if (ccf->rlimit_core != NGX_CONF_UNSET_SIZE) {
+    if (ccf->rlimit_core != NGX_CONF_UNSET) {
         rlmt.rlim_cur = (rlim_t) ccf->rlimit_core;
         rlmt.rlim_max = (rlim_t) ccf->rlimit_core;
 
         if (setrlimit(RLIMIT_CORE, &rlmt) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
-                          "setrlimit(RLIMIT_CORE, %i) failed",
+                          "setrlimit(RLIMIT_CORE, %O) failed",
                           ccf->rlimit_core);
         }
     }
@@ -1026,13 +1028,14 @@ ngx_worker_process_exit(ngx_cycle_t *cycle)
                 && !c[i].read->resolver)
             {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, 0,
-                              "open socket #%d left in connection %ui%s",
-                              c[i].fd, i, ngx_debug_quit ? ", aborting" : "");
-                ngx_debug_point();
+                              "open socket #%d left in connection %ui",
+                              c[i].fd, i);
+                ngx_debug_quit = 1;
             }
         }
 
         if (ngx_debug_quit) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, 0, "aborting");
             ngx_debug_point();
         }
     }
@@ -1285,6 +1288,8 @@ ngx_cache_manager_process_cycle(ngx_cycle_t *cycle, void *data)
     ngx_event_t   ev;
 
     cycle->connection_n = 512;
+
+    ngx_process = NGX_PROCESS_HELPER;
 
     ngx_worker_process_init(cycle, 0);
 

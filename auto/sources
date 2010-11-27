@@ -125,6 +125,8 @@ AIO_SRCS="src/event/modules/ngx_aio_module.c \
           src/os/unix/ngx_aio_read_chain.c \
           src/os/unix/ngx_aio_write_chain.c"
 
+FILE_AIO_SRCS="src/os/unix/ngx_file_aio_read.c"
+LINUX_AIO_SRCS="src/os/unix/ngx_linux_aio_read.c"
 
 UNIX_INCS="$CORE_INCS $EVENT_INCS src/os/unix"
 
@@ -385,6 +387,10 @@ HTTP_MAP_MODULE=ngx_http_map_module
 HTTP_MAP_SRCS=src/http/modules/ngx_http_map_module.c
 
 
+HTTP_SPLIT_CLIENTS_MODULE=ngx_http_split_clients_module
+HTTP_SPLIT_CLIENTS_SRCS=src/http/modules/ngx_http_split_clients_module.c
+
+
 HTTP_REFERER_MODULE=ngx_http_referer_module
 HTTP_REFERER_SRCS=src/http/modules/ngx_http_referer_module.c
 
@@ -404,6 +410,14 @@ HTTP_PROXY_SRCS=src/http/modules/ngx_http_proxy_module.c
 
 HTTP_FASTCGI_MODULE=ngx_http_fastcgi_module
 HTTP_FASTCGI_SRCS=src/http/modules/ngx_http_fastcgi_module.c
+
+
+HTTP_UWSGI_MODULE=ngx_http_uwsgi_module
+HTTP_UWSGI_SRCS=src/http/modules/ngx_http_uwsgi_module.c
+
+
+HTTP_SCGI_MODULE=ngx_http_scgi_module
+HTTP_SCGI_SRCS=src/http/modules/ngx_http_scgi_module.c
 
 
 HTTP_PERL_MODULE=ngx_http_perl_module
@@ -434,6 +448,10 @@ HTTP_BROWSER_SRCS=src/http/modules/ngx_http_browser_module.c
 
 HTTP_SECURE_LINK_MODULE=ngx_http_secure_link_module
 HTTP_SECURE_LINK_SRCS=src/http/modules/ngx_http_secure_link_module.c
+
+
+HTTP_DEGRADATION_MODULE=ngx_http_degradation_module
+HTTP_DEGRADATION_SRCS=src/http/modules/ngx_http_degradation_module.c
 
 
 HTTP_FLV_MODULE=ngx_http_flv_module

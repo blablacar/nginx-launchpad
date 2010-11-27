@@ -122,6 +122,7 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
 
     ngx_memzero(&of, sizeof(ngx_open_file_info_t));
 
+    of.read_ahead = clcf->read_ahead;
     of.directio = clcf->directio;
     of.valid = clcf->open_file_cache_valid;
     of.min_uses = clcf->open_file_cache_min_uses;
@@ -207,12 +208,10 @@ ngx_http_gzip_static_handler(ngx_http_request_t *r)
     }
 
     h->hash = 1;
-    h->key.len = sizeof("Content-Encoding") - 1;
-    h->key.data = (u_char *) "Content-Encoding";
-    h->value.len = sizeof("gzip") - 1;
-    h->value.data = (u_char *) "gzip";
-
+    ngx_str_set(&h->key, "Content-Encoding");
+    ngx_str_set(&h->value, "gzip");
     r->headers_out.content_encoding = h;
+
     r->ignore_content_encoding = 1;
 
     /* we need to allocate all before the header would be sent */

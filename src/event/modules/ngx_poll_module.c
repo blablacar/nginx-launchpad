@@ -72,7 +72,7 @@ ngx_poll_init(ngx_cycle_t *cycle, ngx_msec_t timer)
         nevents = 0;
     }
 
-    if (ngx_process == NGX_PROCESS_WORKER
+    if (ngx_process >= NGX_PROCESS_WORKER
         || cycle->old_cycle == NULL
         || cycle->old_cycle->connection_n < cycle->connection_n)
     {
@@ -260,11 +260,7 @@ ngx_poll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
     ready = poll(event_list, (u_int) nevents, (int) timer);
 
-    if (ready == -1) {
-        err = ngx_errno;
-    } else {
-        err = 0;
-    }
+    err = (ready == -1) ? ngx_errno : 0;
 
     if (flags & NGX_UPDATE_TIME || ngx_event_timer_alarm) {
         ngx_time_update();

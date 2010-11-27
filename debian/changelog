@@ -1,3 +1,60 @@
+nginx (0.8.53-1) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/control:
+    + Added Michael Lustfield as co-maintainer
+  * nginx.conf:
+    + No need to use regex in gzip_disable for msie6, Thanks to António P. P.
+      Almeida <appa@perusio.net> (Closes: #592147)
+  * conf/sites-available/default:
+    + Fixed typo for "include fastcgi", Thanks to Mostafa Ghadamyari
+      <nginx@gigfa.com> (Closes: #593142, #593143)
+  * debian/patches/fix_reloading_ipv6.diff:
+    + Removed, merged upstream
+  * debian/init.d:
+    + Added fix to control nginx by user in a simple way by setting DAEMON
+      variable to an invalid name in /etc/default/nginx. Patch by Toni Mueller
+      <support@oeko.net> (Closes: #594598)
+  * debian/NEWS.Debian:
+    + Updated news for 0.8.x as stable branch
+
+  [Michael Lustfield]
+  * New upstream release (Closes: #602970)
+    + 0.8.x branch is declared stable by upstream now
+  * Add a UFW profile set:
+    + debian/nginx.ufw.profile: Added.
+    + debian/control: nginx: Suggests ufw.
+    + debian/dirs: Add 'etc/ufw/applications.d'
+    + debian/rules: Add install rule for the nginx UFW profile.
+  * Moved debian/dirs to debian/nginx.dirs
+  * Added types_hash_max_size to nginx.conf
+  * Install simple default index.html file (Closes: #581416)
+    + debian/dirs: Add 'usr/share/nginx/www'.
+    + debian/nginx.install: Add 'html/* usr/share/nginx/www'.
+  * debian/patches/nginx-echo.diff:
+    + Added Echo module
+  * Added files for nginx.docs
+    - /usr/share/doc/nginx/
+      + debian/help/docs/fcgiwrap
+      + debian/help/docs/php
+      + debian/help/docs/support-irc
+      + debian/help/docs/upstream
+  * Added files for nginx.examples
+    - /usr/share/doc/nginx/examples/
+      + debian/help/docs/drupal
+      + debian/help/docs/http
+      + debian/help/docs/mail
+      + debian/help/docs/mailman
+      + debian/help/docs/nginx.conf
+      + debian/help/docs/virtual_hosts
+      + debian/help/docs/wordpress
+  * debian/conf/:
+    + Removed excess spaces
+    + Added tabs where appropriate
+    + Added SCRIPT_FILENAME to fastcgi_params
+
+ -- Kartik Mistry <kartik@debian.org>  Sat, 27 Nov 2010 21:04:02 +0530
+
 nginx (0.7.67-3) unstable; urgency=low
 
   * debian/rules:

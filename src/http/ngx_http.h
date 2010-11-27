@@ -51,12 +51,22 @@ struct ngx_http_log_ctx_s {
 };
 
 
+typedef struct {
+    ngx_uint_t           code;
+    ngx_uint_t           count;
+    u_char              *start;
+    u_char              *end;
+} ngx_http_status_t;
+
+
 #define ngx_http_get_module_ctx(r, module)  (r)->ctx[module.ctx_index]
 #define ngx_http_set_ctx(r, c, module)      r->ctx[module.ctx_index] = c;
 
 
 ngx_int_t ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations,
     ngx_http_core_loc_conf_t *clcf);
+ngx_int_t ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
+    ngx_http_listen_opt_t *lsopt);
 
 
 void ngx_http_init_connection(ngx_connection_t *c);
@@ -68,6 +78,8 @@ int ngx_http_ssl_servername(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg);
 ngx_int_t ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b);
 ngx_int_t ngx_http_parse_complex_uri(ngx_http_request_t *r,
     ngx_uint_t merge_slashes);
+ngx_int_t ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
+    ngx_http_status_t *status);
 ngx_int_t ngx_http_parse_unsafe_uri(ngx_http_request_t *r, ngx_str_t *uri,
     ngx_str_t *args, ngx_uint_t *flags);
 ngx_int_t ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
@@ -84,11 +96,15 @@ ngx_int_t ngx_http_find_server_conf(ngx_http_request_t *r);
 void ngx_http_update_location_config(ngx_http_request_t *r);
 void ngx_http_handler(ngx_http_request_t *r);
 void ngx_http_run_posted_requests(ngx_connection_t *c);
-ngx_int_t ngx_http_post_request(ngx_http_request_t *r);
+ngx_int_t ngx_http_post_request(ngx_http_request_t *r,
+    ngx_http_posted_request_t *pr);
 void ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc);
 
 void ngx_http_empty_handler(ngx_event_t *wev);
 void ngx_http_request_empty_handler(ngx_http_request_t *r);
+
+
+#define ngx_http_ephemeral(r)  (void *) (&r->uri_start)
 
 
 #define NGX_HTTP_LAST   1
@@ -114,16 +130,21 @@ size_t ngx_http_get_time(char *buf, time_t t);
 
 
 ngx_int_t ngx_http_discard_request_body(ngx_http_request_t *r);
+void ngx_http_discarded_request_body_handler(ngx_http_request_t *r);
 void ngx_http_block_reading(ngx_http_request_t *r);
 void ngx_http_test_reading(ngx_http_request_t *r);
 
 
 char *ngx_http_types_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-char *ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t *keys,
-    ngx_hash_t *types_hash, ngx_array_t *prev_keys, ngx_hash_t *prev_types_hash,
-    ngx_str_t *default_types);
+char *ngx_http_merge_types(ngx_conf_t *cf, ngx_array_t **keys,
+    ngx_hash_t *types_hash, ngx_array_t **prev_keys,
+    ngx_hash_t *prev_types_hash, ngx_str_t *default_types);
 ngx_int_t ngx_http_set_default_types(ngx_conf_t *cf, ngx_array_t **types,
     ngx_str_t *default_type);
+
+#if (NGX_HTTP_DEGRADATION)
+ngx_uint_t  ngx_http_degraded(ngx_http_request_t *);
+#endif
 
 
 extern ngx_module_t  ngx_http_module;

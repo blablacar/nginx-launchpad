@@ -53,7 +53,7 @@ static ngx_str_t ngx_http_status_lines[] = {
 
     ngx_string("200 OK"),
     ngx_string("201 Created"),
-    ngx_null_string,  /* "202 Accepted" */
+    ngx_string("202 Accepted"),
     ngx_null_string,  /* "203 Non-Authoritative Information" */
     ngx_string("204 No Content"),
     ngx_null_string,  /* "205 Reset Content" */
@@ -68,7 +68,7 @@ static ngx_str_t ngx_http_status_lines[] = {
 
     ngx_string("301 Moved Permanently"),
     ngx_string("302 Moved Temporarily"),
-    ngx_null_string,  /* "303 See Other" */
+    ngx_string("303 See Other"),
     ngx_string("304 Not Modified"),
 
     /* ngx_null_string, */  /* "305 Use Proxy" */
@@ -132,10 +132,6 @@ static ngx_str_t ngx_http_status_lines[] = {
 ngx_http_header_out_t  ngx_http_headers_out[] = {
     { ngx_string("Server"), offsetof(ngx_http_headers_out_t, server) },
     { ngx_string("Date"), offsetof(ngx_http_headers_out_t, date) },
-#if 0
-    { ngx_string("Content-Type"),
-                 offsetof(ngx_http_headers_out_t, content_type) },
-#endif
     { ngx_string("Content-Length"),
                  offsetof(ngx_http_headers_out_t, content_length) },
     { ngx_string("Content-Encoding"),
@@ -173,6 +169,10 @@ ngx_http_header_filter(ngx_http_request_t *r)
     struct sockaddr_in6       *sin6;
 #endif
     u_char                     addr[NGX_SOCKADDR_STRLEN];
+
+    if (r->header_sent) {
+        return NGX_OK;
+    }
 
     r->header_sent = 1;
 
@@ -222,8 +222,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
 
             if (status == NGX_HTTP_NO_CONTENT) {
                 r->header_only = 1;
-                r->headers_out.content_type.len = 0;
-                r->headers_out.content_type.data = NULL;
+                ngx_str_null(&r->headers_out.content_type);
                 r->headers_out.last_modified_time = -1;
                 r->headers_out.last_modified = NULL;
                 r->headers_out.content_length = NULL;
@@ -342,6 +341,11 @@ ngx_http_header_filter(ngx_http_request_t *r)
             port = ntohs(sin6->sin6_port);
             break;
 #endif
+#if (NGX_HAVE_UNIX_DOMAIN)
+        case AF_UNIX:
+            port = 0;
+            break;
+#endif
         default: /* AF_INET */
             sin = (struct sockaddr_in *) c->local_sockaddr;
             port = ntohs(sin->sin_port);
@@ -370,8 +374,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
         }
 
     } else {
-        host.len = 0;
-        host.data = NULL;
+        ngx_str_null(&host);
         port = 0;
     }
 
@@ -538,8 +541,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
 
         r->headers_out.location->value.len = b->last - p;
         r->headers_out.location->value.data = p;
-        r->headers_out.location->key.len = sizeof("Location") - 1;
-        r->headers_out.location->key.data = (u_char *) "Location";
+        ngx_str_set(&r->headers_out.location->key, "Location");
 
         *b->last++ = CR; *b->last++ = LF;
     }

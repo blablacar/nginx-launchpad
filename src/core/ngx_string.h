@@ -38,6 +38,9 @@ typedef struct {
 
 #define ngx_string(str)     { sizeof(str) - 1, (u_char *) str }
 #define ngx_null_string     { 0, NULL }
+#define ngx_str_set(str, text)                                               \
+    (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
+#define ngx_str_null(str)   (str)->len = 0; (str)->data = NULL
 
 
 #define ngx_tolower(c)      (u_char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
@@ -86,7 +89,7 @@ ngx_strlchr(u_char *p, u_char *last, u_char c)
 #if (NGX_MEMCPY_LIMIT)
 
 void *ngx_memcpy(void *dst, void *src, size_t n);
-#define ngx_cpymem(dst, src, n)   ((u_char *) ngx_memcpy(dst, src, n)) + (n)
+#define ngx_cpymem(dst, src, n)   (((u_char *) ngx_memcpy(dst, src, n)) + (n))
 
 #else
 
@@ -96,7 +99,7 @@ void *ngx_memcpy(void *dst, void *src, size_t n);
  * icc8 compile memcpy(d, s, 4) to the inline "mov"es or XMM moves.
  */
 #define ngx_memcpy(dst, src, n)   (void) memcpy(dst, src, n)
-#define ngx_cpymem(dst, src, n)   ((u_char *) memcpy(dst, src, n)) + (n)
+#define ngx_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
 
 #endif
 
@@ -161,6 +164,7 @@ ngx_int_t ngx_memn2cmp(u_char *s1, u_char *s2, size_t n1, size_t n2);
 ngx_int_t ngx_dns_strcmp(u_char *s1, u_char *s2);
 
 ngx_int_t ngx_atoi(u_char *line, size_t n);
+ngx_int_t ngx_atofp(u_char *line, size_t n, size_t point);
 ssize_t ngx_atosz(u_char *line, size_t n);
 off_t ngx_atoof(u_char *line, size_t n);
 time_t ngx_atotm(u_char *line, size_t n);
@@ -174,6 +178,7 @@ u_char *ngx_hex_dump(u_char *dst, u_char *src, size_t len);
 
 void ngx_encode_base64(ngx_str_t *dst, ngx_str_t *src);
 ngx_int_t ngx_decode_base64(ngx_str_t *dst, ngx_str_t *src);
+ngx_int_t ngx_decode_base64url(ngx_str_t *dst, ngx_str_t *src);
 
 uint32_t ngx_utf8_decode(u_char **p, size_t n);
 size_t ngx_utf8_length(u_char *p, size_t n);
@@ -195,6 +200,17 @@ uintptr_t ngx_escape_uri(u_char *dst, u_char *src, size_t size,
 void ngx_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t type);
 uintptr_t ngx_escape_html(u_char *dst, u_char *src, size_t size);
 
+
+typedef struct {
+    ngx_rbtree_node_t         node;
+    ngx_str_t                 str;
+} ngx_str_node_t;
+
+
+void ngx_str_rbtree_insert_value(ngx_rbtree_node_t *temp,
+    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+ngx_str_node_t *ngx_str_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *name,
+    uint32_t hash);
 
 
 void ngx_sort(void *base, size_t n, size_t size,

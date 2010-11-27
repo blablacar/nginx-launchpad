@@ -1,3 +1,11 @@
+nginx (0.8.53-1) unstable; urgency=low
+
+  As stated by upstream, the 0.7.x branch is consedered legacy and 0.8.x will
+  be the new stable branch. For this reason, the nginx maintainers decided to
+  upload 0.8.53 to unstable.
+
+ -- Kartik Mistry <kartik@debian.org>  Fri, 26 Nov 2010 19:42:09 +0530
+
 nginx (0.7.59-1) unstable; urgency=low
 
   As stated by upstream, the 0.6.x branch is consedered legacy and 0.7.x will

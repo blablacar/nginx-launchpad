@@ -258,6 +258,18 @@ ngx_http_gzip_header_filter(ngx_http_request_t *r)
 
     r->gzip_vary = 1;
 
+#if (NGX_HTTP_DEGRADATION)
+    {
+    ngx_http_core_loc_conf_t  *clcf;
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    if (clcf->gzip_disable_degradation && ngx_http_degraded(r)) {
+        return ngx_http_next_header_filter(r);
+    }
+    }
+#endif
+
     if (!r->gzip_tested) {
         if (ngx_http_gzip_ok(r) != NGX_OK) {
             return ngx_http_next_header_filter(r);
@@ -285,11 +297,8 @@ ngx_http_gzip_header_filter(ngx_http_request_t *r)
     }
 
     h->hash = 1;
-    h->key.len = sizeof("Content-Encoding") - 1;
-    h->key.data = (u_char *) "Content-Encoding";
-    h->value.len = sizeof("gzip") - 1;
-    h->value.data = (u_char *) "gzip";
-
+    ngx_str_set(&h->key, "Content-Encoding");
+    ngx_str_set(&h->value, "gzip");
     r->headers_out.content_encoding = h;
 
     r->main_filter_need_in_memory = 1;
@@ -1123,8 +1132,8 @@ ngx_http_gzip_merge_conf(ngx_conf_t *cf, void *parent, void *child)
                               MAX_MEM_LEVEL - 1);
     ngx_conf_merge_value(conf->min_length, prev->min_length, 20);
 
-    if (ngx_http_merge_types(cf, conf->types_keys, &conf->types,
-                             prev->types_keys, &prev->types,
+    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types,
+                             &prev->types_keys, &prev->types,
                              ngx_http_html_default_types)
         != NGX_OK)
     {

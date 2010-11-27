@@ -1,3 +1,5 @@
 objs/nginx usr/sbin
 debian/conf/* etc/nginx
 debian/NEWS.Debian usr/share/doc/nginx
+debian/ufw.profile etc/ufw/applications.d/nginx
+html/* usr/share/nginx/www/
