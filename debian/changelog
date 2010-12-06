@@ -1,3 +1,27 @@
+nginx (0.8.53-2) unstable; urgency=low
+
+  [Kartik Mistry]
+  * debian/conf/mime.types:
+    + Added html5 codecs support (Closes: #605212)
+  * debian/conf/fastcgi_params:
+    + Fixed typo (Closes: #605582)
+
+  [Michael Lustfield]
+  * debian/conf/nginx.conf:
+    + Reduced worker_connections to 768 (Closes: #605529)
+  * Add an nginx site management script to nginx-doc. (Closes: #593580)
+    + debian/help/examples/nginx_modsite: Added.
+  * debian/nginx.logrotate:
+    + Added prerotate chunk for awstats. (Closes: #590098)
+  * debian/copyright:
+    + Added Michael Lustfield
+  * Created nginx-doc:
+    + Added 'Package: nginx-doc' section to debian/control
+    + Moved debian/nginx.examples -> debian/nginx-doc.examples
+    + Moved debian/nginx.docs -> debian/nginx-doc.docs
+
+ -- Kartik Mistry <kartik@debian.org>  Mon, 06 Dec 2010 11:26:22 +0530
+
 nginx (0.8.53-1) unstable; urgency=low
 
   [Kartik Mistry]

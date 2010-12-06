@@ -37,4 +37,5 @@ Files: debian/*
 Copyright: © 2006-2010, Jose Parrella <joseparrella@cantv.net>,
                         Fabio Tranchitella <kobold@debian.org>
            © 2009-2010, Kartik Mistry <kartik@debian.org>
+           © 2010, Michael Lustfield <mtecknology@ubuntu.com>
 License: Same as upstream license.

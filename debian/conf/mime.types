@@ -56,11 +56,13 @@ types {
 	application/octet-stream		eot;
 	application/octet-stream		iso img;
 	application/octet-stream		msi msp msm;
+	application/ogg				ogx;
 
 	audio/midi				mid midi kar;
 	audio/mpeg				mpga mpega mp2 mp3 m4a;
 	audio/ogg				oga ogg spx;
 	audio/x-realaudio			ra;
+	audio/webm				weba;
 
 	video/3gpp				3gpp 3gp;
 	video/mp4				mp4;
