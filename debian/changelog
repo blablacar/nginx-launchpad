@@ -1,3 +1,93 @@
+nginx (0.8.54-1) unstable; urgency=low
+
+  [ Michael Lustfield ]
+  * Added ipv6 patch. (Closes: #607418)
+    + Edited files:
+      - src/http/ngx_http_request.c
+  * Added ulmit patches. (Closes: #606094)
+    + Added files:
+      - debian/nginx-full.default
+      - debian/nginx-light.default
+      - debian/nginx-extras.default
+    + Edited files:
+      - debian/nginx-full.init.d
+      - debian/nginx-light.init.d
+      - debian/nginx-extras.init.d
+  * Added perl module to nginx-extras. (Closes: #598461)
+    + debian/rules:
+      - Added --with-http_perl_module to nginx-extras.
+    + debian/control:
+      - Added libperl-dev build dependency.
+    + debian/nginx-extras.install:
+      - Added perl install files
+    + debian/nginx-extras.dirs:
+      - Added directory to install perl files.
+  * debian/rules:
+    + Added ifeq to handle nginx.8 (man page) if it exists in the source.
+  * debian/control:
+    + Added descriptions to make clear the differences between nginx packages.
+  * Removed patches:
+    + debian/patches/nginx-echo.diff
+      - Put source into debian/patches/.
+    + debian/patches/nginx-upstream-fair.diff
+      - Put source into debian/patches/.
+    + debian/patches/dlopen.diff
+      - Patch no longer relevant.
+  * Added modules:
+    + debian/modules/nginx-development-kit
+    + debian/modules/nginx-upstream-fair
+    + debian/modules/nginx-echo
+    + debian/modules/nginx-lua
+  * Split Nginx into multiple variations of the package.
+    + Added files for nginx-full:
+      - debian/nginx-full.install
+      - debian/nginx-full.dirs
+      - debian/nginx-full.logrotate
+      - debian/nginx-full.init.d
+      - debian/nginx-full.postinst
+      - debian/nginx-full.prerm
+      - debian/nginx-full.postrm
+    + Added files for nginx-light:
+      - debian/nginx-light.install
+      - debian/nginx-light.dirs
+      - debian/nginx-light.logrotate
+      - debian/nginx-light.init.d
+      - debian/nginx-light.postinst
+      - debian/nginx-light.prerm
+      - debian/nginx-light.postrm
+    + Added files for nginx-extras:
+      - debian/nginx-extras.install
+      - debian/nginx-extras.dirs
+      - debian/nginx-extras.logrotate
+      - debian/nginx-extras.init.d
+      - debian/nginx-extras.postinst
+      - debian/nginx-extras.prerm
+      - debian/nginx-extras.postrm
+    + Removed files for nginx:
+      - debian/nginx.install
+      - debian/nginx.dirs
+      - debian/nginx.logrotate
+      - debian/init.d
+      - debian/postinst
+      - debian/prerm
+      - debian/postrm
+    + Updated debian/rules:
+      - Modified rules to create extra packages.
+    + Updated debian/control:
+      - Added packages for nginx-{full,light,extras}.
+      - Added packages for nginx-{full,light,extras}-dbg.
+      - Changed nginx to a dummy package selecting nginx-full.
+
+  [Kartik Mistry]
+  * debian/control:
+    + Added doc section for nginx-doc
+    + Wrapped some long descriptions, updated short descriptions
+    + Added perl:Depends for nginx-extras
+  * debian/rules:
+    + Fixed dh_installchangelogs, dh_compress
+
+ -- Michael Lustfield <mtecknology@ubuntu.com>  Thu, 30 Dec 2010 14:15:26 +0530
+
 nginx (0.8.53-2) unstable; urgency=low
 
   [Kartik Mistry]

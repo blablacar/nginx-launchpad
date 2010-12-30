@@ -1,3 +1,1 @@
-nginx-upstream-fair.diff
-dlopen.diff
-nginx-echo.diff
+607418-ipv6-addresses.diff
