@@ -200,9 +200,8 @@ binary-arch: install build-dbg
 	dh_testdir -a
 	dh_testroot -a
 	dh_installman $(CURDIR)/debian/nginx.1 -aA
-ifneq "$(wildcard $(CURDIR)/man)" ""
-	dh_installman $(CURDIR)/man/nginx.8 -aA
-endif
+	# do not install manpage in -dbg packages
+	rm -rf $(CURDIR)/debian/*-dbg/usr/share/man
 	dh_installchangelogs -a -k CHANGES
 	dh_installdocs -a
 	dh_installexamples -a

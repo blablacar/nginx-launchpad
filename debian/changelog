@@ -1,3 +1,9 @@
+nginx (0.8.54-2) unstable; urgency=low
+
+  * Do not install nginx.8 man page in debug packages (Closes: #608633)
+
+ -- Kartik Mistry <kartik@debian.org>  Sun, 02 Jan 2011 18:46:03 +0530
+
 nginx (0.8.54-1) unstable; urgency=low
 
   [ Michael Lustfield ]
