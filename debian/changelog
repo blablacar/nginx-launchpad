@@ -1,3 +1,14 @@
+nginx (0.8.54-3) unstable; urgency=low
+
+  * debian/control:
+    + Added Breaks: and Replaces: to nginx packages. (Closes: #609254)
+  * debian/rules:
+    + Adding SSL support to nginx-light. (Closes: #609134)
+    + Adding HTTP Addition module to nginx-full and nginx-extras. (Closes: #609411)
+    + Added HTTP Push module to nginx-extras. (LP: #694456)
+
+ -- Michael Lustfield <mtecknology@ubuntu.com>  Tue, 11 Jan 2011 05:27:39 -0600
+
 nginx (0.8.54-2) unstable; urgency=low
 
   * Do not install nginx.8 man page in debug packages (Closes: #608633)

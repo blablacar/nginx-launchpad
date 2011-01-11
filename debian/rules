@@ -58,6 +58,7 @@ config.status.full: config.env.full config.sub config.guess
 	    --lock-path=/var/lock/nginx.lock \
 	    --pid-path=/var/run/nginx.pid \
 	    --with-debug \
+	    --with-http_addition_module \
 	    --with-http_dav_module \
 	    --with-http_geoip_module \
 	    --with-http_gzip_static_module \
@@ -87,6 +88,7 @@ config.status.light: config.env.light config.sub config.guess
 	    --lock-path=/var/lock/nginx.lock \
 	    --pid-path=/var/run/nginx.pid \
 	    --with-http_gzip_static_module \
+	    --with-http_ssl_module \
 	    --with-ipv6 \
 	    --without-http_browser_module \
 	    --without-http_geo_module \
@@ -115,6 +117,7 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --lock-path=/var/lock/nginx.lock \
 	    --pid-path=/var/run/nginx.pid \
 	    --with-debug \
+	    --with-http_addition_module \
 	    --with-http_dav_module \
 	    --with-http_flv_module \
 	    --with-http_geoip_module \
@@ -137,6 +140,7 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --add-module=$(MODULESDIR)/nginx-upstream-fair \
 	    --add-module=$(MODULESDIR)/nginx-echo \
 	    --add-module=$(MODULESDIR)/nginx-lua \
+	    --add-module=$(MODULESDIR)/nginx-push-0.692 \
             $(CONFIGURE_OPTS) >$@
 	touch $@
 
