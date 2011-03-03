@@ -85,7 +85,8 @@ ngx_http_echo_wev_handler(ngx_http_request_t *r)
 
         dd("finalizing with rc %d", (int) rc);
 
-        dd("finalize request %.*s with %d", (int) r->uri.len, r->uri.data, (int) rc);
+        dd("finalize request %.*s with %d", (int) r->uri.len, r->uri.data,
+                (int) rc);
 
         ngx_http_finalize_request(r, rc);
     }
@@ -156,9 +157,9 @@ ngx_http_echo_run_cmds(ngx_http_request_t *r)
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_echo_module);
     if (ctx == NULL) {
-        rc = ngx_http_echo_init_ctx(r, &ctx);
-        if (rc != NGX_OK) {
-            return rc;
+        ctx = ngx_http_echo_create_ctx(r);
+        if (ctx == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
         ngx_http_set_ctx(r, ctx, ngx_http_echo_module);
@@ -314,11 +315,17 @@ ngx_int_t
 ngx_http_echo_post_subrequest(ngx_http_request_t *r,
         void *data, ngx_int_t rc)
 {
+    ngx_http_echo_ctx_t         *ctx = data;
     ngx_http_request_t          *pr;
     ngx_http_echo_ctx_t         *pr_ctx;
 
-
     dd_enter();
+
+    if (ctx->run_post_subrequest) {
+        return rc;
+    }
+
+    ctx->run_post_subrequest = 1;
 
     pr = r->parent;
 

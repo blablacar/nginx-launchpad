@@ -98,11 +98,14 @@ config.status.light: config.env.light config.sub config.guess
 	    --without-http_memcached_module \
 	    --without-http_referer_module \
 	    --without-http_scgi_module \
+	    --without-http_split_clients_module \
 	    --without-http_ssi_module \
+	    --without-http_userid_module \
 	    --without-http_uwsgi_module \
 	    --add-module=$(MODULESDIR)/nginx-echo \
             $(CONFIGURE_OPTS) >$@
 	touch $@
+
 
 config.status.extras: config.env.extras config.sub config.guess
 	cd $(BUILDDIR_extras) && ./configure \
@@ -117,6 +120,7 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --lock-path=/var/lock/nginx.lock \
 	    --pid-path=/var/run/nginx.pid \
 	    --with-debug \
+	    --with-file-aio \
 	    --with-http_addition_module \
 	    --with-http_dav_module \
 	    --with-http_flv_module \
@@ -188,9 +192,12 @@ install:
 binary-indep: install
 	dh_testdir -i
 	dh_testroot -i
+	dh_installman -i
 	dh_installchangelogs -i -k CHANGES
 	dh_installdocs -i
 	dh_installexamples -i
+	dh_installinit -r --no-start -i --init-script=nginx
+	cp debian/logrotate debian/nginx-common/etc/logrotate.d/nginx
 	dh_link -i
 	dh_compress -i
 	dh_fixperms -i
@@ -199,19 +206,13 @@ binary-indep: install
 	dh_md5sums -i
 	dh_builddeb -i
 
-
 binary-arch: install build-dbg
 	dh_testdir -a
 	dh_testroot -a
-	dh_installman $(CURDIR)/debian/nginx.1 -aA
-	# do not install manpage in -dbg packages
-	rm -rf $(CURDIR)/debian/*-dbg/usr/share/man
 	dh_installchangelogs -a -k CHANGES
 	dh_installdocs -a
-	dh_installexamples -a
-	dh_installinit -r --no-start -a --init-script=nginx
-	dh_installlogrotate -a
 	dh_link -aA
+	dh_lintian -a
 	dh_compress -a
 	dh_perl -a
 	dh_fixperms -a

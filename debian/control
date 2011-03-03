@@ -23,15 +23,18 @@ Vcs-Browser: http://svn.debian.org/wsvn/collab-maint/deb-maint/nginx/trunk
 Package: nginx
 Architecture: all
 Depends: ${misc:Depends}, nginx-full
-Description: dummy package to ease transition to nginx-full
- This is a dummy package to ease transition to nginx-full.
+Description: small, but very powerful and efficient web server and mail proxy
+ Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
+ the open-source community. This server can be used as standalone HTTP server
+ and as a reverse proxy server before some Apache or another big server to
+ reduce load to backend servers by many concurrent HTTP-sessions.
  .
- It may be safely removed from your system.
+ This is a dummy package that selects nginx-full.
 
 Package: nginx-doc
 Architecture: all
 Section: doc
-Depends: ${misc:Depends}, ${shlibs:Depends}, lsb-base (>= 3.2-14)
+Depends: ${misc:Depends}, lsb-base (>= 3.2-14)
 Description: small, but very powerful and efficient web server (documentation)
  Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
  the open-source community. This server can be used as standalone HTTP server
@@ -40,15 +43,26 @@ Description: small, but very powerful and efficient web server (documentation)
  .
  This package provides extra documentation to help unleash the power of Nginx.
 
+Package: nginx-common
+Architecture: all
+Depends: ${misc:Depends}, lsb-base (>= 3.2-14)
+Replaces: nginx (<< 0.8.54-4), nginx-full (<< 0.8.54-4), nginx-light (<< 0.8.54-4), nginx-extras (<< 0.8.54-4)
+Breaks: nginx (<< 0.8.54-4), nginx-full (<< 0.8.54-4), nginx-light (<< 0.8.54-4), nginx-extras (<< 0.8.54-4)
+Description: small, but very powerful and efficient web server (common files)
+ Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
+ the open-source community. This server can be used as standalone HTTP server
+ and as a reverse proxy server before some Apache or another big server to
+ reduce load to backend servers by many concurrent HTTP-sessions.
+ .
+ This package contains base configuration files used across multiple packaged
+ versions of Nginx (nginx-full, nginx-light, nginx-extras).
+
 Package: nginx-full
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, lsb-base (>= 3.2-14)
-Suggests: ufw, nginx-doc
+Depends: ${misc:Depends}, ${shlibs:Depends}, nginx-common (= ${source:Version})
 Provides: httpd, nginx
 Conflicts: nginx-light, nginx-extras
-Replaces: nginx (<< 0.8.54-2)
-Breaks: nginx (<< 0.8.54-2)
-Description: small, but very powerful and efficient web server and mail proxy
+Description: nginx web server with full set of core modules
  Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
  the open-source community. This server can be used as standalone HTTP server
  and as a reverse proxy server before some Apache or another big server to
@@ -86,13 +100,10 @@ Description: Debugging symbols for nginx (full)
 
 Package: nginx-light
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, lsb-base (>= 3.2-14)
-Suggests: ufw, nginx-doc
+Depends: ${misc:Depends}, ${shlibs:Depends}, nginx-common (= ${source:Version})
 Provides: httpd, nginx
 Conflicts: nginx-full, nginx-extras
-Replaces: nginx (<< 0.8.54-2)
-Breaks: nginx (<< 0.8.54-2)
-Description: small, but very powerful and efficient web server - light
+Description: nginx web server with minimal set of core modules
  Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
  the open-source community. This server can be used as standalone HTTP server
  and as a reverse proxy server before some Apache or another big server to
@@ -129,13 +140,10 @@ Description: Debugging symbols for nginx (light)
 
 Package: nginx-extras
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends}, lsb-base (>= 3.2-14)
-Suggests: ufw, nginx-doc
+Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends}, nginx-common (= ${source:Version})
 Provides: httpd, nginx
 Conflicts: nginx-full, nginx-light
-Replaces: nginx (<< 0.8.54-2)
-Breaks: nginx (<< 0.8.54-2)
-Description: small, but very powerful and efficient web server - extras
+Description: nginx web server with full set of core modules and extras
  Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
  the open-source community. This server can be used as standalone HTTP server
  and as a reverse proxy server before some Apache or another big server to
@@ -154,6 +162,8 @@ Description: small, but very powerful and efficient web server - extras
    Debug, WebDAV, Flash Streaming Video, GeoIP, Gzip Precompression, Image
    Filter, RealIP, Stub Status, XSLT, IPv6, Embedded Perl, Secure Link, Random
    Index, Addition
+ Other Modules:
+   File AIO
  Mail Modules:
    Mail Core, POP3, IMAP, SMTP, SSL
  Third Party Modules:

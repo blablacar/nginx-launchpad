@@ -7,7 +7,6 @@
 ##
 
 The easy way:
-As of Ubuntu 10.10 (Maverick Meerkat) you can install it from repositories.
 apt-get install fcgiwrap
 
 The less-easy way:

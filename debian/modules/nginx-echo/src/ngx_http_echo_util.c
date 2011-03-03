@@ -5,24 +5,23 @@
 #include "ngx_http_echo_sleep.h"
 
 
-ngx_int_t
-ngx_http_echo_init_ctx(ngx_http_request_t *r, ngx_http_echo_ctx_t **ctx_ptr)
+ngx_http_echo_ctx_t *
+ngx_http_echo_create_ctx(ngx_http_request_t *r)
 {
     ngx_http_echo_ctx_t         *ctx;
 
-    *ctx_ptr = ngx_pcalloc(r->pool, sizeof(ngx_http_echo_ctx_t));
-    if (*ctx_ptr == NULL) {
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_echo_ctx_t));
+    if (ctx == NULL) {
+        return NULL;
     }
-
-    ctx = *ctx_ptr;
 
     ctx->sleep.handler   = ngx_http_echo_sleep_event_handler;
     ctx->sleep.data      = r;
     ctx->sleep.log       = r->connection->log;
 
-    return NGX_OK;
+    return ctx;
 }
+
 
 ngx_int_t
 ngx_http_echo_eval_cmd_args(ngx_http_request_t *r,
@@ -34,7 +33,6 @@ ngx_http_echo_eval_cmd_args(ngx_http_request_t *r,
     ngx_str_t                       *arg, *raw, *opt;
     ngx_http_echo_arg_template_t    *value;
     ngx_flag_t                       expecting_opts = 1;
-
 
     value = args->elts;
 
@@ -88,11 +86,11 @@ ngx_http_echo_eval_cmd_args(ngx_http_request_t *r,
 
 ngx_int_t
 ngx_http_echo_send_chain_link(ngx_http_request_t* r,
-        ngx_http_echo_ctx_t *ctx, ngx_chain_t *cl)
+        ngx_http_echo_ctx_t *ctx, ngx_chain_t *in)
 {
-    ngx_int_t       rc;
-    size_t          size;
-    ngx_chain_t     *p;
+    ngx_int_t        rc;
+    size_t           size;
+    ngx_chain_t     *cl;
 
     rc = ngx_http_echo_send_header_if_needed(r, ctx);
 
@@ -105,10 +103,8 @@ ngx_http_echo_send_chain_link(ngx_http_request_t* r,
 
         size = 0;
 
-        for (p = cl; p; p = p->next) {
-            if (p->buf->memory) {
-                size += p->buf->last - p->buf->pos;
-            }
+        for (cl = in; cl; cl = cl->next) {
+            size += ngx_buf_size(cl->buf);
         }
 
         r->headers_out.content_length_n = (off_t) size;
@@ -126,7 +122,7 @@ ngx_http_echo_send_chain_link(ngx_http_request_t* r,
         }
     }
 
-    if (cl == NULL) {
+    if (in == NULL) {
 
 #if defined(nginx_version) && nginx_version <= 8004
 
@@ -146,12 +142,14 @@ ngx_http_echo_send_chain_link(ngx_http_request_t* r,
         return NGX_OK;
     }
 
-    return ngx_http_output_filter(r, cl);
+    return ngx_http_output_filter(r, in);
 }
+
 
 ngx_int_t
 ngx_http_echo_send_header_if_needed(ngx_http_request_t* r,
-        ngx_http_echo_ctx_t *ctx) {
+        ngx_http_echo_ctx_t *ctx)
+{
     /* ngx_int_t   rc; */
 
     if ( ! ctx->headers_sent ) {
@@ -173,8 +171,10 @@ ngx_http_echo_send_header_if_needed(ngx_http_request_t* r,
     return NGX_OK;
 }
 
+
 ssize_t
-ngx_http_echo_atosz(u_char *line, size_t n) {
+ngx_http_echo_atosz(u_char *line, size_t n)
+{
     ssize_t  value;
 
     if (n == 0) {
@@ -199,6 +199,7 @@ ngx_http_echo_atosz(u_char *line, size_t n) {
         return value;
     }
 }
+
 
 /* Modified from the ngx_strlcasestrn function in ngx_string.h
  * Copyright (C) by Igor Sysoev */
@@ -244,5 +245,38 @@ ngx_http_echo_post_request_at_head(ngx_http_request_t *r,
     r->main->posted_requests = pr;
 
     return NGX_OK;
+}
+
+
+u_char *
+ngx_http_echo_rebase_path(ngx_pool_t *pool, u_char *src, size_t osize,
+        size_t *nsize)
+{
+    u_char            *p, *dst;
+
+    if (osize == 0) {
+        return NULL;
+    }
+
+    if (src[0] == '/') {
+        /* being an absolute path already */
+        *nsize = osize;
+        return src;
+    }
+
+    *nsize = ngx_cycle->prefix.len + osize;
+
+    dst = ngx_palloc(pool, *nsize + 1);
+    if (dst == NULL) {
+        *nsize = 0;
+        return NULL;
+    }
+
+    p = ngx_copy(dst, ngx_cycle->prefix.data, ngx_cycle->prefix.len);
+    p = ngx_copy(p, src, osize);
+
+    *p = '\0';
+
+    return dst;
 }
 

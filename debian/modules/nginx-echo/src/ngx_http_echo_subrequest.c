@@ -7,7 +7,8 @@
 
 #define ngx_http_echo_method_name(m) { sizeof(m) - 1, (u_char *) m " " }
 
-ngx_str_t  ngx_http_echo_content_length_header_key = ngx_string("Content-Length");
+ngx_str_t  ngx_http_echo_content_length_header_key =
+        ngx_string("Content-Length");
 
 ngx_str_t  ngx_http_echo_get_method = ngx_http_echo_method_name("GET");
 ngx_str_t  ngx_http_echo_put_method = ngx_http_echo_method_name("PUT");
@@ -21,8 +22,10 @@ ngx_str_t  ngx_http_echo_trace_method = ngx_http_echo_method_name("TRACE");
 ngx_str_t  ngx_http_echo_delete_method = ngx_http_echo_method_name("DELETE");
 ngx_str_t  ngx_http_echo_unlock_method = ngx_http_echo_method_name("UNLOCK");
 ngx_str_t  ngx_http_echo_options_method = ngx_http_echo_method_name("OPTIONS");
-ngx_str_t  ngx_http_echo_propfind_method = ngx_http_echo_method_name("PROPFIND");
-ngx_str_t  ngx_http_echo_proppatch_method = ngx_http_echo_method_name("PROPPATCH");
+ngx_str_t  ngx_http_echo_propfind_method =
+        ngx_http_echo_method_name("PROPFIND");
+ngx_str_t  ngx_http_echo_proppatch_method =
+        ngx_http_echo_method_name("PROPPATCH");
 
 
 typedef struct ngx_http_echo_subrequest_s {
@@ -62,9 +65,9 @@ ngx_http_echo_exec_echo_subrequest_async(ngx_http_request_t *r,
         return rc;
     }
 
-    dd("location: %s", parsed_sr->location->data);
-    dd("location args: %s", (char*) (parsed_sr->query_string ?
-                parsed_sr->query_string->data : (u_char*)"NULL"));
+    dd("location: %.*s",
+            (int) parsed_sr->location->len,
+            parsed_sr->location->data);
 
     args.data = NULL;
     args.len = 0;
@@ -106,17 +109,18 @@ ngx_int_t
 ngx_http_echo_exec_echo_subrequest(ngx_http_request_t *r,
         ngx_http_echo_ctx_t *ctx, ngx_array_t *computed_args)
 {
-    ngx_int_t                           rc;
+    ngx_int_t                            rc;
     ngx_http_request_t                  *sr; /* subrequest object */
     ngx_http_post_subrequest_t          *psr;
     ngx_http_echo_subrequest_t          *parsed_sr;
-    ngx_str_t                           args;
-    ngx_uint_t                          flags = 0;
-
+    ngx_str_t                            args;
+    ngx_uint_t                           flags = 0;
+    ngx_http_echo_ctx_t                 *sr_ctx;
 
     dd_enter();
 
     rc = ngx_http_echo_parse_subrequest_spec(r, computed_args, &parsed_sr);
+
     if (rc != NGX_OK) {
         return rc;
     }
@@ -125,8 +129,10 @@ ngx_http_echo_exec_echo_subrequest(ngx_http_request_t *r,
     args.len = 0;
 
     if (ngx_http_parse_unsafe_uri(r, parsed_sr->location, &args, &flags)
-            != NGX_OK) {
+            != NGX_OK)
+    {
         ctx->headers_sent = 1;
+
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -140,6 +146,12 @@ ngx_http_echo_exec_echo_subrequest(ngx_http_request_t *r,
         return rc;
     }
 
+    sr_ctx = ngx_http_echo_create_ctx(r);
+
+    /* set by ngx_http_echo_create_ctx
+     *  sr_ctx->run_post_subrequest = 0
+     */
+
     psr = ngx_palloc(r->pool, sizeof(ngx_http_post_subrequest_t));
 
     if (psr == NULL) {
@@ -147,7 +159,7 @@ ngx_http_echo_exec_echo_subrequest(ngx_http_request_t *r,
     }
 
     psr->handler = ngx_http_echo_post_subrequest;
-    psr->data = ctx;
+    psr->data = sr_ctx;
 
     rc = ngx_http_subrequest(r, parsed_sr->location, parsed_sr->query_string,
             &sr, psr, 0);
@@ -174,11 +186,15 @@ ngx_http_echo_parse_subrequest_spec(ngx_http_request_t *r,
     ngx_str_t                  **to_write = NULL;
     ngx_str_t                   *method_name;
     ngx_str_t                   *body_str = NULL;
+    ngx_str_t                   *body_file = NULL;
     ngx_uint_t                   i;
     ngx_flag_t                   expecting_opt;
     ngx_http_request_body_t     *rb = NULL;
     ngx_buf_t                   *b;
     ngx_http_echo_subrequest_t  *parsed_sr;
+    ngx_open_file_info_t         of;
+    ngx_http_core_loc_conf_t    *clcf;
+    size_t                       len;
 
     *parsed_sr_ptr = ngx_pcalloc(r->pool, sizeof(ngx_http_echo_subrequest_t));
     if (*parsed_sr_ptr == NULL) {
@@ -227,6 +243,13 @@ ngx_http_echo_parse_subrequest_spec(ngx_http_request_t *r,
                 expecting_opt = 0;
                 continue;
             }
+
+            if (ngx_strncmp("-f", arg->data, arg->len) == 0) {
+              dd("found option -f");
+              to_write = &body_file;
+              expecting_opt = 0;
+              continue;
+            }
         }
 
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -235,7 +258,7 @@ ngx_http_echo_parse_subrequest_spec(ngx_http_request_t *r,
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    if (body_str != NULL && body_str->len != 0) {
+    if (body_str != NULL && body_str->len) {
         rb = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
 
         if (rb == NULL) {
@@ -262,6 +285,85 @@ ngx_http_echo_parse_subrequest_spec(ngx_http_request_t *r,
         rb->bufs->buf = b;
         rb->bufs->next = NULL;
 
+        rb->buf = b;
+
+    } else if (body_file != NULL && body_file->len) {
+
+        dd("body_file defined %.*s", (int) body_file->len, body_file->data);
+
+        body_file->data = ngx_http_echo_rebase_path(r->pool, body_file->data,
+                body_file->len, &len);
+
+        if (body_file->data == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        body_file->len = len;
+
+        dd("after rebase, the path becomes %.*s", (int) body_file->len,
+                body_file->data);
+
+        rb = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
+        if (rb == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+        ngx_memzero(&of, sizeof(ngx_open_file_info_t));
+
+        of.read_ahead = clcf->read_ahead;
+        of.directio = clcf->directio;
+        of.valid = clcf->open_file_cache_valid;
+        of.min_uses = clcf->open_file_cache_min_uses;
+        of.errors = clcf->open_file_cache_errors;
+        of.events = clcf->open_file_cache_events;
+
+        if (ngx_open_cached_file(clcf->open_file_cache, body_file, &of, r->pool)
+            != NGX_OK)
+        {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, of.err,
+                    "%s \"%V\" failed",
+                    of.failed, body_file);
+
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        dd("file content size: %d", (int) of.size);
+
+        parsed_sr->content_length_n = of.size;
+
+        b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+        if (b == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        b->file = ngx_pcalloc(r->pool, sizeof(ngx_file_t));
+        if (b->file == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        b->file_pos = 0;
+        b->file_last = of.size;
+
+        b->in_file = b->file_last ? 1: 0;
+
+#if 0
+        b->last_buf = (r == r->main) ? 1: 0;
+        b->last_in_chain = 1;
+#endif
+
+        b->file->fd = of.fd;
+        b->file->name = *body_file;
+        b->file->log = r->connection->log;
+        b->file->directio = of.is_directio;
+
+        rb->bufs = ngx_alloc_chain_link(r->pool);
+        if (rb->bufs == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        rb->bufs->buf = b;
+        rb->bufs->next = NULL;
         rb->buf = b;
     }
 
@@ -341,7 +443,9 @@ ngx_http_echo_adjust_subrequest(ngx_http_request_t *sr,
 
         ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
 
-        dd("sr content length: %s", sr->headers_in.content_length->value.data);
+        dd("sr content length: %.*s",
+                (int) sr->headers_in.content_length->value.len,
+                sr->headers_in.content_length->value.data);
     }
 
     dd("subrequest body: %p", sr->request_body);

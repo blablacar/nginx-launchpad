@@ -1,3 +1,62 @@
+nginx (0.8.54-4) unstable; urgency=low
+
+  [Micheal Lustfield]
+  * debian/nginx-{full,light,extras}.default:
+    + Added comment about alternative to ULIMIT.
+  * debian/nginx-{full,light,extras}.init.d:
+    + Added quotes around a test variable. (Closes: #610946, LP: #699736)
+  * debian/patches/609343-log-time-iso8601.diff:
+    + Added patch to add $time_iso8601 variable to logs. (Closes: #609343)
+  * Clean up old logrotate files. (Closes: #608983, Closes: #610289)
+    + Added Files:
+      - debian/nginx-common.preinst
+    + Modified Files:
+      - debian/rules
+    + Moved debian/nginx-common.logrotate to debian/logrotate.
+  * Added common files to nginx-common package. (Closes: #610290)
+    + Removed Files:
+      - debian/nginx-full.dirs
+      - debian/nginx-light.dirs
+      - debian/nginx-full.install
+      - debian/nginx-light.install
+      - debian/nginx-extras.install
+      - debian/nginx.*
+    + Added Files:
+      - debian/nginx-common.default
+      - debian/nginx-common.dirs
+      - debian/nginx-common.init.d
+      - debian/nginx-common.install
+      - debian/nginx-common.manpages
+      - debian/logrotate
+    + Modified Files:
+      - debian/nginx-extras.dirs
+      - debian/control
+      - debian/rules
+  * debian/nginx-*.install: (Closes: #609797)
+    + Removed NEWS.Debian from nginx-{full,light,extras}.install.
+    + Added NEWS.Debian to nginx-common.install.
+  * nginx-common.postinst:
+    + Enforce /var/log/nginx mode and user:group. (Closes: #610983)
+    + Enforce /var/log/nginx/*.log mode and user:group. (Closes: #612832)
+  * debian/rules:
+    + Added --with-file-aio to nginx-extras. (Closes: #613175)
+    + Removed split clients and user id modules from nginx-light.
+  * debian/conf/sites-available/default:
+    + Fixed a minor typo ( s/Quickstart/QuickStart/ ). (Closes: #613355)
+  * debian/conf/mime.types:
+    + Changed xml type to application/xhtml+xml. (Closes: #613851)
+  * debian/help/docs/fcgiwrap:
+    + Removed Ubuntu specific line in docs. (Closes: #614987)
+  * debian/conf/sites-available/default:
+    + Fixed a pointer to a file. (Closes: #614980)
+
+  [Kartik Mistry]
+  * debian/*.lintian-overrides:
+    + Add Lintian overrides for nginx man page. We've manpage in nginx-common
+      binary
+
+ -- Michael Lustfield <mtecknology@ubuntu.com>  Thu, 03 Mar 2011 23:39:07 +0530
+
 nginx (0.8.54-3) unstable; urgency=low
 
   * debian/control:
