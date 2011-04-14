@@ -88,6 +88,10 @@ ngx_http_header_t  ngx_http_headers_in[] = {
                  offsetof(ngx_http_headers_in_t, if_modified_since),
                  ngx_http_process_unique_header_line },
 
+    { ngx_string("If-Unmodified-Since"),
+                 offsetof(ngx_http_headers_in_t, if_unmodified_since),
+                 ngx_http_process_unique_header_line },
+
     { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent),
                  ngx_http_process_user_agent },
 
@@ -974,10 +978,13 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                 if (rv == NGX_DECLINED) {
                     p = r->header_name_start;
 
+                    r->lingering_close = 1;
+
                     if (p == NULL) {
                         ngx_log_error(NGX_LOG_INFO, c->log, 0,
                                       "client sent too large request");
-                        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+                        ngx_http_finalize_request(r,
+                                            NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
                         return;
                     }
 
@@ -991,7 +998,9 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                     ngx_log_error(NGX_LOG_INFO, c->log, 0,
                                   "client sent too long header line: \"%*s\"",
                                   len, r->header_name_start);
-                    ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+
+                    ngx_http_finalize_request(r,
+                                            NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
                     return;
                 }
             }
@@ -2585,6 +2594,7 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
 #endif
 
     c->idle = 1;
+    ngx_reusable_connection(c, 1);
 
     if (rev->ready) {
         ngx_post_event(rev, &ngx_posted_events);
@@ -2694,6 +2704,7 @@ ngx_http_keepalive_handler(ngx_event_t *rev)
     c->log->action = "reading client request line";
 
     c->idle = 0;
+    ngx_reusable_connection(c, 0);
 
     ngx_http_init_request(rev);
 }

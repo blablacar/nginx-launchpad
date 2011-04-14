@@ -1,10 +1,12 @@
+buf
 complex_path
 complex_value
 conf_file
 encoding
 hash
-log
+http
 path
+process
 regex
 rewrite
 set_var

@@ -15,6 +15,9 @@
 
 #ifdef NDK_ALL
 
+#ifndef NDK_BUF
+#define NDK_BUF 1
+#endif
 #ifndef NDK_COMPLEX_PATH
 #define NDK_COMPLEX_PATH 1
 #endif
@@ -30,11 +33,14 @@
 #ifndef NDK_HASH
 #define NDK_HASH 1
 #endif
-#ifndef NDK_LOG
-#define NDK_LOG 1
+#ifndef NDK_HTTP
+#define NDK_HTTP 1
 #endif
 #ifndef NDK_PATH
 #define NDK_PATH 1
+#endif
+#ifndef NDK_PROCESS
+#define NDK_PROCESS 1
 #endif
 #ifndef NDK_REGEX
 #define NDK_REGEX 1
@@ -73,11 +79,6 @@
 #define NDK_STRING 1
 #endif
 #endif
-#ifdef  NDK_CORE
-#ifndef NDK_LOG
-#define NDK_LOG 1
-#endif
-#endif
 #ifdef  NDK_HASH
 #ifndef NDK_STRING
 #define NDK_STRING 1
@@ -86,6 +87,11 @@
 #ifdef  NDK_SET_VAR
 #ifndef NDK_REWRITE
 #define NDK_REWRITE 1
+#endif
+#endif
+#ifdef  NDK_UPSTREAM_LIST
+#ifndef NDK_HTTP_CREATE_MAIN_CONF
+#define NDK_HTTP_CREATE_MAIN_CONF 1
 #endif
 #endif
 

@@ -1,3 +1,30 @@
+nginx (1.0.0-1) unstable; urgency=low
+
+  [Kartik Mistry]
+  * New upstream release:
+    + Removed debian/patches/609343-log-time-iso8601.diff, merged upstream.
+  * debian/rules:
+    + Fixed: FTBFS on sparc64, detects sparc64 as sparc. Thanks to
+      Aurelien Jarno <aurel32@debian.org> (Closes: #617924)
+  * debian/watch:
+    + Updated for 1.x.x release
+
+  [Michael Lustfield]
+  * debian/rules:
+    + Added Echo module back to nginx-full. (LP: #735622)
+    + Moved nginx-push-0.96 to nginx-http-push.
+  * debian/modules:
+    + Updated nginx-development-kit.
+    + Updated nginx-echo.
+    + Updated nginx-http-push.
+    + Updated nginx-lua.
+    + Updated nginx-upstream-fair.
+    + Added versions to track module versions.
+  * debian/conf/fastcgi_params:
+    + Changed $document_root$fastcgi_script_name to $request_filename.
+
+ -- Kartik Mistry <kartik@debian.org>  Thu, 14 Apr 2011 10:41:08 +0530
+
 nginx (0.8.54-4) unstable; urgency=low
 
   [Micheal Lustfield]

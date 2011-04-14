@@ -95,7 +95,9 @@
 /* The special code to close connection without any response */
 #define NGX_HTTP_CLOSE                     444
 
-#define NGX_HTTP_OWN_CODES                 495
+#define NGX_HTTP_NGINX_CODES               494
+
+#define NGX_HTTP_REQUEST_HEADER_TOO_LARGE  494
 
 #define NGX_HTTPS_CERT_ERROR               495
 #define NGX_HTTPS_NO_CERT                  496
@@ -167,6 +169,7 @@ typedef struct {
     ngx_table_elt_t                  *host;
     ngx_table_elt_t                  *connection;
     ngx_table_elt_t                  *if_modified_since;
+    ngx_table_elt_t                  *if_unmodified_since;
     ngx_table_elt_t                  *user_agent;
     ngx_table_elt_t                  *referer;
     ngx_table_elt_t                  *content_length;

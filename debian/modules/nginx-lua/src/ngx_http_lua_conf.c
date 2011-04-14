@@ -4,13 +4,14 @@
 
 
 static void ngx_http_lua_cleanup_vm(void *data);
-static char * ngx_http_lua_init_vm(ngx_conf_t *cf, ngx_http_lua_main_conf_t *lmcf);
+static char * ngx_http_lua_init_vm(ngx_conf_t *cf,
+        ngx_http_lua_main_conf_t *lmcf);
 
 
 void *
 ngx_http_lua_create_main_conf(ngx_conf_t *cf)
 {
-    ngx_http_lua_main_conf_t *lmcf;
+    ngx_http_lua_main_conf_t    *lmcf;
 
     lmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_lua_main_conf_t));
     if (lmcf == NULL) {
@@ -23,7 +24,7 @@ ngx_http_lua_create_main_conf(ngx_conf_t *cf)
      *      lmcf->lua_cpath = { 0, NULL };
      */
 
-    dd("NginX Lua module main config structure initialized!");
+    dd("nginx Lua module main config structure initialized!");
 
     return lmcf;
 }
@@ -36,7 +37,7 @@ ngx_http_lua_init_main_conf(ngx_conf_t *cf, void *conf)
 
     if (lmcf->lua == NULL) {
         if (ngx_http_lua_init_vm(cf, lmcf) != NGX_CONF_OK) {
-            ngx_conf_log_error(NGX_ERROR, cf, 0, "Failed to initialize Lua VM!");
+            ngx_conf_log_error(NGX_ERROR, cf, 0, "Failed to initialize Lua VM");
             return NGX_CONF_ERROR;
         }
 
@@ -58,23 +59,49 @@ ngx_http_lua_create_loc_conf(ngx_conf_t *cf)
     }
 
     /* set by ngx_pcalloc:
-     *      conf->src = { 0, NULL };
+     *      conf->access_src  = {{ 0, NULL }, NULL, NULL, NULL};
+     *      conf->access_src_key = NULL
+     *      conf->rewrite_src = {{ 0, NULL }, NULL, NULL, NULL};
+     *      conf->rewrite_src_key = NULL
+     *      conf->content_src = {{ 0, NULL }, NULL, NULL, NULL};
+     *      conf->content_src_key = NULL
+     *      conf->rewrite_handler = NULL;
+     *      conf->content_handler = NULL;
      */
 
-    conf->force_read_body = NGX_CONF_UNSET;
+    conf->force_read_body   = NGX_CONF_UNSET;
+    conf->enable_code_cache = NGX_CONF_UNSET;
 
     return conf;
 }
 
 
-char*
+char *
 ngx_http_lua_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
     ngx_http_lua_loc_conf_t *prev = parent;
     ngx_http_lua_loc_conf_t *conf = child;
 
-    ngx_conf_merge_str_value(conf->src, prev->src, "");
+    if (conf->rewrite_src.value.len == 0) {
+        conf->rewrite_src = prev->rewrite_src;
+        conf->rewrite_handler = prev->rewrite_handler;
+        conf->rewrite_src_key = prev->rewrite_src_key;
+    }
+
+    if (conf->access_src.value.len == 0) {
+        conf->access_src = prev->access_src;
+        conf->access_handler = prev->access_handler;
+        conf->access_src_key = prev->access_src_key;
+    }
+
+    if (conf->content_src.value.len == 0) {
+        conf->content_src = prev->content_src;
+        conf->content_handler = prev->content_handler;
+        conf->content_src_key = prev->content_src_key;
+    }
+
     ngx_conf_merge_value(conf->force_read_body, prev->force_read_body, 0);
+    ngx_conf_merge_value(conf->enable_code_cache, prev->enable_code_cache, 1);
 
     return NGX_CONF_OK;
 }
@@ -83,17 +110,17 @@ ngx_http_lua_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 static void
 ngx_http_lua_cleanup_vm(void *data)
 {
-    lua_State *lua = data;
+    lua_State *L = data;
 
-    if (lua != NULL) {
-        lua_close(lua);
+    if (L != NULL) {
+        lua_close(L);
 
         dd("Lua VM closed!");
     }
 }
 
 
-static char*
+static char *
 ngx_http_lua_init_vm(ngx_conf_t *cf, ngx_http_lua_main_conf_t *lmcf)
 {
     ngx_pool_cleanup_t *cln;

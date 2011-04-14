@@ -11,7 +11,7 @@ MODULESDIR = $(CURDIR)/debian/modules
 BASEDIR = $(CURDIR)
 
 DEB_BUILD_ARCH ?=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
-ifneq (,$(findstring sparc,$(DEB_BUILD_ARCH)))
+ifeq ($(DEB_BUILD_ARCH),sparc)
 	CONFIGURE_OPTS = --with-cc-opt="-m32 -mcpu=ultrasparc"
 endif
 
@@ -73,6 +73,7 @@ config.status.full: config.env.full config.sub config.guess
 	    --with-md5=/usr/include/openssl \
 	    --with-mail \
 	    --with-mail_ssl_module \
+	    --add-module=$(MODULESDIR)/nginx-echo \
 	    --add-module=$(MODULESDIR)/nginx-upstream-fair \
             $(CONFIGURE_OPTS) >$@
 	touch $@
@@ -144,7 +145,7 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --add-module=$(MODULESDIR)/nginx-upstream-fair \
 	    --add-module=$(MODULESDIR)/nginx-echo \
 	    --add-module=$(MODULESDIR)/nginx-lua \
-	    --add-module=$(MODULESDIR)/nginx-push-0.692 \
+	    --add-module=$(MODULESDIR)/nginx-http-push \
             $(CONFIGURE_OPTS) >$@
 	touch $@
 

@@ -1,4 +1,5 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
+
 use lib 'lib';
 use Test::Nginx::Socket;
 
@@ -7,7 +8,7 @@ use Test::Nginx::Socket;
 #log_level('warn');
 
 #repeat_each(120);
-repeat_each(1);
+repeat_each(3);
 
 plan tests => blocks() * repeat_each() * 2;
 
@@ -111,4 +112,67 @@ I dunno why this test is not passing. TODO'ing...
 GET /main
 --- response_body_like: 3: bar$
 --- SKIP
+
+
+
+=== TEST 4: capture works for subrequests with internal redirects
+--- config
+    location /lua {
+        content_by_lua '
+            local res = ngx.location.capture("/")
+            ngx.say(res.status)
+            ngx.print(res.body)
+        ';
+    }
+--- request
+    GET /lua
+--- response_body_like chop
+200
+.*It works
+--- SKIP
+
+
+
+=== TEST 5: disk file bufs not working
+--- config
+    location /lua {
+        content_by_lua '
+            local res = ngx.location.capture("/test.lua")
+            ngx.say(res.status)
+            ngx.print(res.body)
+        ';
+    }
+--- user_files
+>>> test.lua
+print("Hello, world")
+--- request
+    GET /lua
+--- response_body
+200
+print("Hello, world")
+
+
+
+=== TEST 6: print lua empty strings
+--- config
+    location /lua {
+        content_by_lua 'ngx.print("") ngx.flush() ngx.print("Hi")';
+    }
+--- request
+GET /lua
+--- response_body chop
+Hi
+
+
+
+=== TEST 7: say lua empty strings
+--- config
+    location /lua {
+        content_by_lua 'ngx.say("") ngx.flush() ngx.print("Hi")';
+    }
+--- request
+GET /lua
+--- response_body eval
+"
+Hi"
 

@@ -3,13 +3,14 @@ use lib 'lib';
 use Test::Nginx::Socket;
 
 #worker_connections(1014);
-#master_process_enabled(1);
-log_level('warn');
+#master_on();
+#workers(2);
+#log_level('warn');
 
 repeat_each(2);
 #repeat_each(1);
 
-plan tests => repeat_each() * (blocks() * 2 + 1);
+plan tests => repeat_each() * (blocks() * 2 + 2);
 
 #no_diff();
 #no_long_string();
@@ -405,7 +406,34 @@ type: foo/bar
 
 
 
-=== TEST 24: capture location headers
+=== TEST 24: capture location multi-value headers
+--- config
+    location /other {
+        #echo "hello, world";
+        content_by_lua '
+            ngx.header["Set-Cookie"] = {"a", "hello, world", "foo"}
+            ngx.eof()
+        ';
+    }
+
+    location /lua {
+        content_by_lua '
+            res = ngx.location.capture("/other");
+            ngx.say("type: ", type(res.header["Set-Cookie"]));
+            ngx.say("len: ", #res.header["Set-Cookie"]);
+            ngx.say("value: ", table.concat(res.header["Set-Cookie"], "|"))
+        ';
+    }
+--- request
+GET /lua
+--- response_body
+type: table
+len: 3
+value: a|hello, world|foo
+
+
+
+=== TEST 25: capture location headers
 --- config
     location /other {
         default_type 'foo/bar';
@@ -429,7 +457,7 @@ Bar: Bah
 
 
 
-=== TEST 25: capture location headers
+=== TEST 26: capture location headers
 --- config
     location /other {
         default_type 'foo/bar';
@@ -451,4 +479,82 @@ GET /lua
 --- response_body
 type: foo/bar
 Bar: nil
+
+
+
+=== TEST 27: HTTP 1.0 response
+--- config
+    location /lua {
+        content_by_lua '
+            data = "hello, world"
+            -- ngx.header["Content-Length"] = #data
+            -- ngx.header.content_length = #data
+            ngx.print(data)
+        ';
+    }
+    location /main {
+        proxy_pass http://127.0.0.1:$server_port/lua;
+    }
+--- request
+GET /main
+--- response_headers
+Content-Length: 12
+--- response_body chop
+hello, world
+
+
+
+=== TEST 28: multiple eof
+--- config
+    location /lua {
+        content_by_lua '
+            ngx.say("Hi")
+            ngx.eof()
+            ngx.eof()
+        ';
+    }
+--- request
+GET /lua
+--- response_body
+Hi
+
+
+
+=== TEST 29: nginx vars in script path
+--- config
+    location ~ ^/lua/(.+)$ {
+        content_by_lua_file html/$1.lua;
+    }
+--- user_files
+>>> calc.lua
+local a,b = ngx.var.arg_a, ngx.var.arg_b
+ngx.say(a+b)
+--- request
+GET /lua/calc?a=19&b=81
+--- response_body
+100
+
+
+
+=== TEST 30: nginx vars in script path
+--- config
+    location ~ ^/lua/(.+)$ {
+        content_by_lua_file html/$1.lua;
+    }
+    location /main {
+        echo_location /lua/sum a=3&b=2;
+        echo_location /lua/diff a=3&b=2;
+    }
+--- user_files
+>>> sum.lua
+local a,b = ngx.var.arg_a, ngx.var.arg_b
+ngx.say(a+b)
+>>> diff.lua
+local a,b = ngx.var.arg_a, ngx.var.arg_b
+ngx.say(a-b)
+--- request
+GET /main
+--- response_body
+5
+1
 

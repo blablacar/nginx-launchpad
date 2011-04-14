@@ -1,9 +1,116 @@
 
-Changes with nginx 0.8.54                                        14 Dec 2010
+Changes with nginx 1.0.0                                         12 Apr 2011
+
+    *) Bugfix: a cache manager might hog CPU after reload.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: an "image_filter crop" directive worked incorrectly coupled 
+       with an "image_filter rotate 180" directive.
+
+    *) Bugfix: a "satisfy any" directive disabled custom 401 error page.
+
+
+Changes with nginx 0.9.7                                         04 Apr 2011
+
+    *) Feature: now keepalive connections may be closed premature, if there 
+       are no free worker connections.
+       Thanks to Maxim Dounin.
+
+    *) Feature: the "rotate" parameter of the "image_filter" directive.
+       Thanks to Adam Bocim.
+
+    *) Bugfix: a case when a backend in "fastcgi_pass", "scgi_pass", or 
+       "uwsgi_pass" directives is given by expression and refers to a 
+       defined upstream.
+
+
+Changes with nginx 0.9.6                                         21 Mar 2011
+
+    *) Feature: the "map" directive supports regular expressions as value 
+       of the first parameter.
+
+    *) Feature: $time_iso8601 access_log variable.
+       Thanks to Michael Lustfield.
+
+
+Changes with nginx 0.9.5                                         21 Feb 2011
+
+    *) Change: now nginx uses a default listen backlog value -1 on 
+       Linux.
+       Thanks to Andrei Nigmatulin.
+
+    *) Feature: the "utf8" parameter of "geoip_country" and "geoip_city" 
+       directives.
+       Thanks to Denis F. Latypoff.
+
+    *) Bugfix: in a default "proxy_redirect" directive if "proxy_pass" 
+       directive has no URI part.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: an "error_page" directive did not work with nonstandard 
+       error codes; the bug had appeared in 0.8.53.
+       Thanks to Maxim Dounin.
+
+
+Changes with nginx 0.9.4                                         21 Jan 2011
+
+    *) Feature: the "server_name" directive supports the $hostname variable.
+
+    *) Feature: 494 code for "Request Header Too Large" error.
+
+
+Changes with nginx 0.9.3                                         13 Dec 2010
 
     *) Bugfix: if there was a single server for given IPv6 address:port 
        pair, then captures in regular expressions in a "server_name" 
        directive did not work.
+
+    *) Bugfix: nginx could not be built on Solaris; the bug had appeared in 
+       0.9.0.
+
+
+Changes with nginx 0.9.2                                         06 Dec 2010
+
+    *) Feature: the "If-Unmodified-Since" client request header line 
+       support.
+
+    *) Workaround: fallback to accept() syscall if accept4() was not 
+       implemented; the issue had appeared in 0.9.0.
+
+    *) Bugfix: nginx could not be built on Cygwin; the bug had appeared in 
+       0.9.0.
+
+    *) Bugfix: for OpenSSL vulnerability CVE-2010-4180.
+       Thanks to Maxim Dounin.
+
+
+Changes with nginx 0.9.1                                         30 Nov 2010
+
+    *) Bugfix: "return CODE message" directives did not work; the bug had 
+       appeared in 0.9.0.
+
+
+Changes with nginx 0.9.0                                         29 Nov 2010
+
+    *) Feature: the "keepalive_disable" directive.
+
+    *) Feature: the "map" directive supports variables as value of a 
+       defined variable.
+
+    *) Feature: the "map" directive supports empty strings as value of the 
+       first parameter.
+
+    *) Feature: the "map" directive supports expressions as the first 
+       parameter.
+
+    *) Feature: nginx(8) manual page.
+       Thanks to Sergey Osokin.
+
+    *) Feature: Linux accept4() support.
+       Thanks to Simon Liu.
+
+    *) Workaround: elimination of Linux linker warning about "sys_errlist" 
+       and "sys_nerr"; the warning had appeared in 0.8.35.
 
     *) Bugfix: a segmentation fault might occur in a worker process, if the 
        "auth_basic" directive was used.
@@ -4981,7 +5088,7 @@ Changes with nginx 0.1.11                                        02 Dec 2004
 Changes with nginx 0.1.10                                        26 Nov 2004
 
     *) Bugfix: if the request without arguments contains "//", "/./", 
-       "/../" or "%XX" then the lost character in the request line was 
+       "/../" or "%XX" then the last character in the request line was 
        lost; the bug had appeared in 0.1.9.
 
     *) Bugfix: the fix in 0.1.9 for the files bigger than 2G on Linux did 

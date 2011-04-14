@@ -1,3 +1,4 @@
+/* vim:set ft=c ts=4 sw=4 et fdm=marker: */
 /* Copyright (C) agentzh */
 
 #define DDEBUG 0
@@ -198,8 +199,8 @@ new_header:
 
 
 static ngx_int_t
-ngx_http_set_builtin_header(ngx_http_request_t *r, ngx_http_lua_header_val_t *hv,
-        ngx_str_t *value)
+ngx_http_set_builtin_header(ngx_http_request_t *r,
+        ngx_http_lua_header_val_t *hv, ngx_str_t *value)
 {
     ngx_table_elt_t  *h, **old;
 
@@ -234,8 +235,8 @@ ngx_http_set_builtin_header(ngx_http_request_t *r, ngx_http_lua_header_val_t *hv
 
 
 static ngx_int_t
-ngx_http_set_content_type_header(ngx_http_request_t *r, ngx_http_lua_header_val_t *hv,
-        ngx_str_t *value)
+ngx_http_set_content_type_header(ngx_http_request_t *r,
+        ngx_http_lua_header_val_t *hv, ngx_str_t *value)
 {
     r->headers_out.content_type_len = value->len;
     r->headers_out.content_type = *value;
@@ -249,8 +250,8 @@ ngx_http_set_content_type_header(ngx_http_request_t *r, ngx_http_lua_header_val_
 
 
 static ngx_int_t
-ngx_http_set_content_length_header(ngx_http_request_t *r, ngx_http_lua_header_val_t *hv,
-        ngx_str_t *value)
+ngx_http_set_content_length_header(ngx_http_request_t *r,
+        ngx_http_lua_header_val_t *hv, ngx_str_t *value)
 {
     off_t           len;
 
@@ -270,8 +271,8 @@ ngx_http_set_content_length_header(ngx_http_request_t *r, ngx_http_lua_header_va
 
 
 static ngx_int_t
-ngx_http_clear_content_length_header(ngx_http_request_t *r, ngx_http_lua_header_val_t *hv,
-        ngx_str_t *value)
+ngx_http_clear_content_length_header(ngx_http_request_t *r,
+        ngx_http_lua_header_val_t *hv, ngx_str_t *value)
 {
     r->headers_out.content_length_n = -1;
 
@@ -280,8 +281,8 @@ ngx_http_clear_content_length_header(ngx_http_request_t *r, ngx_http_lua_header_
 
 
 static ngx_int_t
-ngx_http_clear_builtin_header(ngx_http_request_t *r, ngx_http_lua_header_val_t *hv,
-        ngx_str_t *value)
+ngx_http_clear_builtin_header(ngx_http_request_t *r,
+        ngx_http_lua_header_val_t *hv, ngx_str_t *value)
 {
     value->len = 0;
 
@@ -311,7 +312,8 @@ ngx_http_lua_set_header(ngx_http_request_t *r, ngx_str_t key, ngx_str_t value,
                 || ngx_strncasecmp(hv.key.data, handlers[i].name.data,
                     handlers[i].name.len) != 0)
         {
-            dd("hv key comparison: %s <> %s", handlers[i].name.data, hv.key.data);
+            dd("hv key comparison: %s <> %s", handlers[i].name.data,
+                    hv.key.data);
 
             continue;
         }

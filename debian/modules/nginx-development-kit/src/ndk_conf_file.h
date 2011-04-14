@@ -13,6 +13,11 @@ char *  ndk_conf_set_num_flag               (ngx_conf_t *cf, ngx_command_t *cmd,
 char *  ndk_conf_set_num64_slot             (ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 char *  ndk_conf_set_sec_flag_slot          (ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
+ngx_http_conf_ctx_t *   ndk_conf_create_http_location           (ngx_conf_t *cf);
+ngx_http_conf_ctx_t *   ngx_conf_create_http_named_location     (ngx_conf_t *cf, ngx_str_t *name);
+
+ngx_int_t               ndk_replace_command     (ngx_command_t *new_cmd, ngx_uint_t module_type);
+
 
 // values for conf_set_xxx_flag
 
@@ -33,4 +38,7 @@ char *  ndk_conf_set_sec_flag_slot          (ngx_conf_t *cf, ngx_command_t *cmd,
 #define     ndk_conf_set_sec_slot           ngx_conf_set_sec_slot
 #define     ndk_conf_set_size_slot          ngx_conf_set_size_slot
 #define     ndk_conf_set_str_slot           ngx_conf_set_str_slot
+
+
+
 

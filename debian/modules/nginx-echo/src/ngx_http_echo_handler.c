@@ -2,6 +2,7 @@
 
 #include "ddebug.h"
 
+#include "ngx_http_echo_filter.h"
 #include "ngx_http_echo_handler.h"
 #include "ngx_http_echo_echo.h"
 #include "ngx_http_echo_util.h"
@@ -21,6 +22,10 @@ ngx_http_echo_handler_init(ngx_conf_t *cf)
 {
     ngx_int_t         rc;
 
+#if 1
+    ngx_http_echo_filter_used = 0;
+#endif
+
     rc = ngx_http_echo_echo_init(cf);
     if (rc != NGX_OK) {
         return rc;
@@ -36,7 +41,7 @@ ngx_http_echo_wev_handler(ngx_http_request_t *r)
     ngx_int_t                    rc;
     ngx_http_echo_ctx_t         *ctx;
 
-    dd_enter();
+    dd("wev handler");
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_echo_module);
 
@@ -46,19 +51,22 @@ ngx_http_echo_wev_handler(ngx_http_request_t *r)
     }
 
     if (ctx->waiting && ! ctx->done) {
-        if (r->main->posted_requests
-                && r->main->posted_requests->request != r)
-        {
-            dd("HOT SPIN");
+        if (r == r->connection->data && r->postponed) {
+            if (r->postponed->request) {
+                r->connection->data = r->postponed->request;
 
 #if defined(nginx_version) && nginx_version >= 8012
-            ngx_http_post_request(r, NULL);
+                ngx_http_post_request(r->postponed->request, NULL);
 #else
-            ngx_http_post_request(r);
+                ngx_http_post_request(r->postponed->request);
 #endif
 
-            return;
+            } else {
+                ngx_http_echo_flush_postponed_outputs(r);
+            }
         }
+
+        return;
     }
 
     ctx->done = 0;
@@ -74,7 +82,10 @@ ngx_http_echo_wev_handler(ngx_http_request_t *r)
     }
 
     if (rc == NGX_AGAIN) {
-        dd("mark busy %d", (int) ctx->next_handler_cmd);
+        dd("mark busy %d for %.*s", (int) ctx->next_handler_cmd,
+                (int) r->uri.len,
+                r->uri.data);
+
         ctx->waiting = 1;
         ctx->done = 0;
 
@@ -124,7 +135,10 @@ ngx_http_echo_handler(ngx_http_request_t *r)
 
         ctx = ngx_http_get_module_ctx(r, ngx_http_echo_module);
         if (ctx) {
-            dd("mark busy %d", (int) ctx->next_handler_cmd);
+            dd("mark busy %d for %.*s", (int) ctx->next_handler_cmd,
+                    (int) r->uri.len,
+                    r->uri.data);
+
             ctx->waiting = 1;
             ctx->done = 0;
         }
@@ -321,9 +335,11 @@ ngx_http_echo_post_subrequest(ngx_http_request_t *r,
 
     dd_enter();
 
+#if 0
     if (ctx->run_post_subrequest) {
         return rc;
     }
+#endif
 
     ctx->run_post_subrequest = 1;
 

@@ -1,5 +1,8 @@
 // optional includes
 
+#if (NDK_BUF)
+#include  <ndk_buf.h>
+#endif
 #if (NDK_COMPLEX_PATH)
 #include  <ndk_complex_path.h>
 #endif
@@ -15,11 +18,14 @@
 #if (NDK_HASH)
 #include  <ndk_hash.h>
 #endif
-#if (NDK_LOG)
-#include  <ndk_log.h>
+#if (NDK_HTTP)
+#include  <ndk_http.h>
 #endif
 #if (NDK_PATH)
 #include  <ndk_path.h>
+#endif
+#if (NDK_PROCESS)
+#include  <ndk_process.h>
 #endif
 #if (NDK_REGEX)
 #include  <ndk_regex.h>
@@ -44,6 +50,9 @@
 // non-optional includes
 
 #include  <ndk_http_headers.h>
+#include  <ndk_log.h>
+#include  <ndk_parse.h>
+#include  <ndk_string_util.h>
 
 
 // auto-generated headers

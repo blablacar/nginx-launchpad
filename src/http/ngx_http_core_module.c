@@ -133,6 +133,14 @@ static ngx_conf_enum_t  ngx_http_core_if_modified_since[] = {
 };
 
 
+static ngx_conf_enum_t  ngx_http_core_keepalive_disable[] = {
+    { ngx_string("none"), NGX_HTTP_KEEPALIVE_DISABLE_NONE },
+    { ngx_string("msie6"), NGX_HTTP_KEEPALIVE_DISABLE_MSIE6 },
+    { ngx_string("safari"), NGX_HTTP_KEEPALIVE_DISABLE_SAFARI },
+    { ngx_null_string, 0 }
+};
+
+
 static ngx_path_init_t  ngx_http_client_temp_path = {
     ngx_string(NGX_HTTP_CLIENT_TEMP_PATH), { 0, 0, 0 }
 };
@@ -494,6 +502,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, keepalive_requests),
       NULL },
 
+    { ngx_string("keepalive_disable"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, keepalive_disable),
+      &ngx_http_core_keepalive_disable },
+
     { ngx_string("satisfy"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -774,11 +789,7 @@ ngx_http_handler(ngx_http_request_t *r)
     if (!r->internal) {
         switch (r->headers_in.connection_type) {
         case 0:
-            if (r->http_version > NGX_HTTP_VERSION_10) {
-                r->keepalive = 1;
-            } else {
-                r->keepalive = 0;
-            }
+            r->keepalive = (r->http_version > NGX_HTTP_VERSION_10);
             break;
 
         case NGX_HTTP_CONNECTION_CLOSE:
@@ -790,33 +801,7 @@ ngx_http_handler(ngx_http_request_t *r)
             break;
         }
 
-        if (r->keepalive) {
-
-            if (r->headers_in.msie6) {
-                if (r->method == NGX_HTTP_POST) {
-                    /*
-                     * MSIE may wait for some time if an response for
-                     * a POST request was sent over a keepalive connection
-                     */
-                    r->keepalive = 0;
-                }
-
-            } else if (r->headers_in.safari) {
-                /*
-                 * Safari may send a POST request to a closed keepalive
-                 * connection and stalls for some time
-                 */
-                r->keepalive = 0;
-            }
-        }
-
-        if (r->headers_in.content_length_n > 0) {
-            r->lingering_close = 1;
-
-        } else {
-            r->lingering_close = 0;
-        }
-
+        r->lingering_close = (r->headers_in.content_length_n > 0);
         r->phase_handler = 0;
 
     } else {
@@ -1123,17 +1108,21 @@ ngx_int_t
 ngx_http_core_post_access_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph)
 {
+    ngx_int_t  access_code;
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "post access phase: %ui", r->phase_handler);
 
-    if (r->access_code) {
+    access_code = r->access_code;
 
-        if (r->access_code == NGX_HTTP_FORBIDDEN) {
+    if (access_code) {
+        if (access_code == NGX_HTTP_FORBIDDEN) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                           "access forbidden by rule");
         }
 
-        ngx_http_finalize_request(r, r->access_code);
+        r->access_code = 0;
+        ngx_http_finalize_request(r, access_code);
         return NGX_OK;
     }
 
@@ -1236,7 +1225,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
             *e.pos = '\0';
 
             if (alias && ngx_strncmp(name, clcf->name.data, alias) == 0) {
-                ngx_memcpy(name, name + alias, len - alias);
+                ngx_memmove(name, name + alias, len - alias);
                 path.len -= alias;
             }
         }
@@ -1435,6 +1424,28 @@ ngx_http_update_location_config(ngx_http_request_t *r)
             r->keepalive = 0;
 
         } else if (r->connection->requests >= clcf->keepalive_requests) {
+            r->keepalive = 0;
+
+        } else if (r->headers_in.msie6
+                   && r->method == NGX_HTTP_POST
+                   && (clcf->keepalive_disable
+                       & NGX_HTTP_KEEPALIVE_DISABLE_MSIE6))
+        {
+            /*
+             * MSIE may wait for some time if an response for
+             * a POST request was sent over a keepalive connection
+             */
+            r->keepalive = 0;
+
+        } else if (r->headers_in.safari
+                   && (clcf->keepalive_disable
+                       & NGX_HTTP_KEEPALIVE_DISABLE_SAFARI))
+        {
+            /*
+             * Safari may send a POST request to a closed keepalive
+             * connection and may stall for some time, see
+             *     https://bugs.webkit.org/show_bug.cgi?id=5760
+             */
             r->keepalive = 0;
         }
     }
@@ -2983,6 +2994,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_core_srv_conf_t *prev = parent;
     ngx_http_core_srv_conf_t *conf = child;
 
+    ngx_str_t                name;
     ngx_http_server_name_t  *sn;
 
     /* TODO: it does not merge, it inits only */
@@ -3014,19 +3026,35 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->underscores_in_headers,
                               prev->underscores_in_headers, 0);
 
-    if (conf->server_name.data == NULL) {
-        ngx_str_set(&conf->server_name, "");
-
+    if (conf->server_names.nelts == 0) {
+        /* the array has 4 empty preallocated elements, so push can not fail */
         sn = ngx_array_push(&conf->server_names);
-        if (sn == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
 #if (NGX_PCRE)
         sn->regex = NULL;
 #endif
         sn->server = conf;
         ngx_str_set(&sn->name, "");
+    }
+
+    sn = conf->server_names.elts;
+    name = sn[0].name;
+
+#if (NGX_PCRE)
+    if (sn->regex) {
+        name.len++;
+        name.data--;
+    } else
+#endif
+
+    if (name.data[0] == '.') {
+        name.len--;
+        name.data++;
+    }
+
+    conf->server_name.len = name.len;
+    conf->server_name.data = ngx_pstrdup(cf->pool, &name);
+    if (conf->server_name.data == NULL) {
+        return NGX_CONF_ERROR;
     }
 
     return NGX_CONF_OK;
@@ -3065,6 +3093,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->client_max_body_size = NGX_CONF_UNSET;
     clcf->client_body_buffer_size = NGX_CONF_UNSET_SIZE;
     clcf->client_body_timeout = NGX_CONF_UNSET_MSEC;
+    clcf->keepalive_disable = NGX_CONF_UNSET_UINT;
     clcf->satisfy = NGX_CONF_UNSET_UINT;
     clcf->if_modified_since = NGX_CONF_UNSET_UINT;
     clcf->client_body_in_file_only = NGX_CONF_UNSET_UINT;
@@ -3265,6 +3294,9 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->client_body_timeout,
                               prev->client_body_timeout, 60000);
 
+    ngx_conf_merge_uint_value(conf->keepalive_disable, prev->keepalive_disable,
+                              NGX_HTTP_KEEPALIVE_DISABLE_MSIE6
+                              |NGX_HTTP_KEEPALIVE_DISABLE_SAFARI);
     ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy,
                               NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
@@ -3614,28 +3646,11 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_core_srv_conf_t *cscf = conf;
 
     u_char                   ch;
-    ngx_str_t               *value, name;
+    ngx_str_t               *value;
     ngx_uint_t               i;
     ngx_http_server_name_t  *sn;
 
     value = cf->args->elts;
-
-    ch = value[1].data[0];
-
-    if (cscf->server_name.data == NULL) {
-        name = value[1];
-
-        if (ch == '.') {
-            name.len--;
-            name.data++;
-        }
-
-        cscf->server_name.len = name.len;
-        cscf->server_name.data = ngx_pstrdup(cf->pool, &name);
-        if (cscf->server_name.data == NULL) {
-            return NGX_CONF_ERROR;
-        }
-    }
 
     for (i = 1; i < cf->args->nelts; i++) {
 
@@ -3671,7 +3686,13 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         sn->regex = NULL;
 #endif
         sn->server = cscf;
-        sn->name = value[i];
+
+        if (ngx_strcasecmp(value[i].data, (u_char *) "$hostname") == 0) {
+            sn->name = cf->cycle->hostname;
+
+        } else {
+            sn->name = value[i];
+        }
 
         if (value[i].data[0] != '~') {
             ngx_strlow(sn->name.data, sn->name.data, sn->name.len);
