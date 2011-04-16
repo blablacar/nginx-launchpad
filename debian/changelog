@@ -1,3 +1,11 @@
+nginx (1.0.0-2) unstable; urgency=low
+
+  * debian/rules:
+    + Removed --with-file-aio support. Fixed FTBFS on kFreeBSD-* arch
+      (Closes: #621882)
+
+ -- Kartik Mistry <kartik@debian.org>  Sat, 16 Apr 2011 13:47:58 +0530
+
 nginx (1.0.0-1) unstable; urgency=low
 
   [Kartik Mistry]

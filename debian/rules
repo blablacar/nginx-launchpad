@@ -121,7 +121,6 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --lock-path=/var/lock/nginx.lock \
 	    --pid-path=/var/run/nginx.pid \
 	    --with-debug \
-	    --with-file-aio \
 	    --with-http_addition_module \
 	    --with-http_dav_module \
 	    --with-http_flv_module \
