@@ -10,12 +10,13 @@ Build-Depends: debhelper (>= 7),
                libgd2-noxpm-dev,
                libgeoip-dev,
                liblua5.1-dev,
+               libmhash-dev,
                libssl-dev,
                libpcre3-dev,
                libperl-dev,
                libxslt1-dev,
                zlib1g-dev
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Homepage: http://nginx.net
 Vcs-Svn: svn://svn.debian.org/svn/collab-maint/deb-maint/nginx/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/collab-maint/deb-maint/nginx/trunk

@@ -4,11 +4,11 @@ use lib 'lib';
 use Test::Nginx::Socket;
 
 #worker_connections(1014);
-#master_process_enabled(1);
+#master_on();
 #log_level('warn');
 
 #repeat_each(120);
-repeat_each(3);
+#repeat_each(3);
 
 plan tests => blocks() * repeat_each() * 2;
 

@@ -4,8 +4,11 @@
 
 #include "ngx_http_lua_util.h"
 #include "ngx_http_lua_hook.h"
+#include "ngx_http_lua_patch.h"
 
 
+static ngx_int_t ngx_http_lua_send_http10_headers(ngx_http_request_t *r,
+        ngx_http_lua_ctx_t *ctx);
 static void init_ngx_lua_registry(lua_State *L);
 static void init_ngx_lua_globals(lua_State *L);
 static void inject_http_consts(lua_State *L);
@@ -252,9 +255,9 @@ ngx_int_t
 ngx_http_lua_send_chain_link(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx,
         ngx_chain_t *in)
 {
-    ngx_int_t        rc;
-    size_t           size;
-    ngx_chain_t     *cl;
+    ngx_int_t            rc;
+    ngx_chain_t         *cl;
+    ngx_chain_t        **ll;
 
 #if 1
     if (ctx->eof) {
@@ -265,42 +268,37 @@ ngx_http_lua_send_chain_link(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx,
 
     rc = ngx_http_lua_send_header_if_needed(r, ctx);
 
-    if (r->header_only || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-        ctx->eof = 1;
+    if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         return rc;
     }
 
-    if (r->http_version < NGX_HTTP_VERSION_11 && !ctx->headers_sent) {
-        ctx->headers_sent = 1;
-
-        size = 0;
-
-        for (cl = in; cl; cl = cl->next) {
-            size += ngx_buf_size(cl->buf);
-            if (cl->next == NULL) {
-                cl->buf->last_buf = 1;
-            }
-        }
-
-        r->headers_out.content_length_n = (off_t) size;
-
-        if (r->headers_out.content_length) {
-            r->headers_out.content_length->hash = 0;
-        }
-
-        r->headers_out.content_length = NULL;
-
-        dd("setting ctx->eof = 1");
+    if (r->header_only) {
         ctx->eof = 1;
 
-        rc = ngx_http_send_header(r);
-
-        if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            return rc;
+        if (r->http_version < NGX_HTTP_VERSION_11) {
+            return ngx_http_lua_send_http10_headers(r, ctx);
         }
+
+        return rc;
     }
 
     if (in == NULL) {
+        if (r->http_version < NGX_HTTP_VERSION_11) {
+            rc = ngx_http_lua_send_http10_headers(r, ctx);
+            if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+                return rc;
+            }
+
+            if (ctx->out) {
+                rc = ngx_http_output_filter(r, ctx->out);
+
+                if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+                    return rc;
+                }
+
+                ctx->out = NULL;
+            }
+        }
 
 #if defined(nginx_version) && nginx_version <= 8004
 
@@ -317,14 +315,56 @@ ngx_http_lua_send_chain_link(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx,
         dd("send special buf");
 
         rc = ngx_http_send_special(r, NGX_HTTP_LAST);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+        if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
             return rc;
         }
 
         return NGX_OK;
     }
 
+    /* in != NULL */
+
+    if (r->http_version < NGX_HTTP_VERSION_11 && !ctx->headers_sent) {
+        /* we buffer all the output bufs for HTTP 1.0 */
+        for (cl = ctx->out, ll = &ctx->out; cl; cl = cl->next) {
+            ll = &cl->next;
+        }
+
+        *ll = in;
+
+        return NGX_OK;
+    }
+
     return ngx_http_output_filter(r, in);
+}
+
+
+static ngx_int_t
+ngx_http_lua_send_http10_headers(ngx_http_request_t *r,
+        ngx_http_lua_ctx_t *ctx)
+{
+    size_t               size;
+    ngx_chain_t         *cl;
+
+    if (ctx->headers_sent) {
+        return NGX_OK;
+    }
+
+    ctx->headers_sent = 1;
+
+    if (r->headers_out.content_length == NULL) {
+        for (size = 0, cl = ctx->out; cl; cl = cl->next) {
+            size += ngx_buf_size(cl->buf);
+        }
+
+        r->headers_out.content_length_n = (off_t) size;
+
+        if (r->headers_out.content_length) {
+            r->headers_out.content_length->hash = 0;
+        }
+    }
+
+    return ngx_http_send_header(r);
 }
 
 
@@ -947,8 +987,14 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
         cc = ctx->cc;
         cc_ref = ctx->cc_ref;
 
+        // XXX: work-around to nginx regex subsystem
+        ngx_http_lua_pcre_malloc_init(r->pool);
+
         /*  run code */
         rv = lua_resume(cc, nret);
+
+        // XXX: work-around to nginx regex subsystem
+        ngx_http_lua_pcre_malloc_done();
 
         dd("lua resume returns %d", (int) rv);
 
@@ -1064,42 +1110,50 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                                     &ctx->exec_args, &ctx->exec_uri);
                         }
 
+                        r->write_event_handler = ngx_http_request_empty_handler;
+
+                        rc = ngx_http_named_location(r, &ctx->exec_uri);
 #if defined(nginx_version) && nginx_version >= 8011
-                        /* ngx_http_named_location always increments
-                         * r->main->count, which is not we want for
-                         * non-content phases */
-
-                        if (! ctx->entered_content_phase) {
-                            r->main->count--;
+                        if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE)
+                        {
+                            return rc;
                         }
-#endif
 
-                        return ngx_http_named_location(r, &ctx->exec_uri);
+                        return NGX_OK;
+#else
+                        return rc;
+#endif
                     }
 
                     dd("internal redirect to %.*s", (int) ctx->exec_uri.len,
                             ctx->exec_uri.data);
 
-#if defined(nginx_version) && nginx_version >= 8011
-                    /* ngx_http_internal_redirect always increments
-                     * r->main->count, which is not we want for
-                     * non-content phases */
+                    /* resume the write event handler */
+                    r->write_event_handler = ngx_http_request_empty_handler;
 
-                    if (! ctx->entered_content_phase) {
-                        r->main->count--;
-                    }
-#endif
-
-                    return ngx_http_internal_redirect(r, &ctx->exec_uri,
+                    rc = ngx_http_internal_redirect(r, &ctx->exec_uri,
                             &ctx->exec_args);
-                }
+
+                    dd("internal redirect returned %d when in content phase? "
+                            "%d", (int) rc, ctx->entered_content_phase);
+
+#if defined(nginx_version) && nginx_version >= 8011
+                    if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+                        return rc;
+                    }
+
+                    return NGX_OK;
+#else
+                    return rc;
+#endif
+                    }
             }
 
             msg = "unknown reason";
         }
 
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                "content_by_lua aborted: %s: %s",
+                "lua handler aborted: %s: %s",
                 err, msg);
 
         ngx_http_lua_del_thread(r, L, cc_ref, 0);

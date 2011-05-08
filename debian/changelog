@@ -1,3 +1,22 @@
+nginx (1.0.1-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/rules:
+    + Removed if surrounding copy of man/ as it is required for builds.
+    + Added nginx-upload-progress to nginx-extras. (Closes: #618306)
+    + Added nginx-secure-downloads to nginx-extras. (Closes: #622268)
+    + Added --prefix to configure command. (Closes: #619482)
+  * debian/modules:
+    + Added nginx-upload-progress/*.
+    + Added nginx-secure-download/*.
+    + Updated nginx-lua/*.
+    + Updated versions.
+  * debian/control:
+    + Added libmhash-dev build dependency.
+    + Updated Standards-Version to 3.9.1.
+
+ -- Michael Lustfield <mtecknology@ubuntu.com>  Mon, 09 May 2011 00:36:54 +0530
+
 nginx (1.0.0-2) unstable; urgency=low
 
   * debian/rules:

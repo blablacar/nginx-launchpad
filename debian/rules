@@ -41,12 +41,11 @@ config.env.%:
 	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/contrib $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/src $(BUILDDIR_$*)/
-ifneq "$(wildcard $(CURDIR)/man)" ""
 	cp -Pa $(CURDIR)/man $(BUILDDIR_$*)/
-endif
 
 config.status.full: config.env.full config.sub config.guess
 	cd $(BUILDDIR_full) && ./configure \
+	    --prefix=/etc/nginx \
 	    --conf-path=/etc/nginx/nginx.conf \
 	    --error-log-path=/var/log/nginx/error.log \
 	    --http-client-body-temp-path=/var/lib/nginx/body \
@@ -80,6 +79,7 @@ config.status.full: config.env.full config.sub config.guess
 
 config.status.light: config.env.light config.sub config.guess
 	cd $(BUILDDIR_light) && ./configure \
+	    --prefix=/etc/nginx \
 	    --conf-path=/etc/nginx/nginx.conf \
 	    --error-log-path=/var/log/nginx/error.log \
 	    --http-client-body-temp-path=/var/lib/nginx/body \
@@ -110,6 +110,7 @@ config.status.light: config.env.light config.sub config.guess
 
 config.status.extras: config.env.extras config.sub config.guess
 	cd $(BUILDDIR_extras) && ./configure \
+	    --prefix=/etc/nginx \
 	    --conf-path=/etc/nginx/nginx.conf \
 	    --error-log-path=/var/log/nginx/error.log \
 	    --http-client-body-temp-path=/var/lib/nginx/body \
@@ -145,6 +146,8 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --add-module=$(MODULESDIR)/nginx-echo \
 	    --add-module=$(MODULESDIR)/nginx-lua \
 	    --add-module=$(MODULESDIR)/nginx-http-push \
+	    --add-module=$(MODULESDIR)/nginx-upload-progress \
+	    --add-module=$(MODULESDIR)/nginx-secure-download \
             $(CONFIGURE_OPTS) >$@
 	touch $@
 

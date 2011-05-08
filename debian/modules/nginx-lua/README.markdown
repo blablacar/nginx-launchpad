@@ -150,7 +150,7 @@ Synopsis
            lua_need_request_body on;
 
            client_max_body_size 100k;
-           client_body_buffer_size 100k;
+           client_body_in_single_buffer on;
 
            access_by_lua '
                -- check the client IP addr is in our black list
@@ -564,10 +564,11 @@ Force reading request body data or not. The client request body won't be read,
 so you have to explicitly force reading the body if you need its content.
 
 If you want to read the request body data from the `$request_body` variable, make sure that
-your `client_max_body_size` setting is equal to
-your `client_body_buffer_size` setting and
-the capacity specified should hold the biggest
-request body that your app allow.
+your set `client_body_in_single_buffer` on. See
+
+<http://wiki.nginx.org/NginxHttpCoreModule#client_body_in_single_buffer>
+
+for more details.
 
 If the current location defines `rewrite_by_lua` or `rewrite_by_lua_file`,
 then the request body will be read just before the `rewrite_by_lua` or `rewrite_by_lua_file` code is run (and also at the
@@ -632,6 +633,11 @@ Core constants
     ngx.DONE
     ngx.AGAIN
     ngx.ERROR
+
+They take the same values of NGX_OK, NGX_AGAIN, NGX_DONE, NGX_ERROR, and etc. But now
+only ngx.exit() only take two of these values, i.e., NGX_OK and NGX_ERROR. I'll add a
+quick note to README. Thanks for reminding us. The return values of the Lua "return"
+statement will be silently ignored.
 
 HTTP method constants
 ---------------------
@@ -787,6 +793,11 @@ in gzip'd responses that your Lua code is not able to handle properly. So always
 See <http://wiki.nginx.org/NginxHttpProxyModule#proxy_pass_request_headers> for more
 details.
 
+For now, do not use the `error_page` directive or `ngx.exec()` or ngx_echo's `echo_exec`
+directive within locations to be captured by `ngx.location.capture()`
+or `ngx.location.capture_multi()`; ngx_lua cannot capture locations with internal redirections.
+See the `Known Issues` section below for more details and working work-arounds.
+
 ngx.location.capture_multi({ {uri, options?}, {uri, options?}, ... })
 ---------------------------------------------------------------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
@@ -840,7 +851,7 @@ of this function. Logically speaking, the `ngx.location.capture` can be implemen
 
 ngx.status
 ----------
-* **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+* **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
 Read and write the response status. This should be called
 before sending out the response headers.
@@ -1102,6 +1113,12 @@ Returns a formated string can be used as the cookie expiration time. The paramet
     ngx.say(ngx.cookie_time(1290079655))
         -- yields "Thu, 18-Nov-10 11:27:35 GMT"
 
+ngx.is_subrequest
+-----------------
+* **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+
+Returns true if the current request is an nginx subrequest, or false otherwise.
+
 ndk.set_var.DIRECTIVE
 ---------------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
@@ -1119,37 +1136,17 @@ For instance,
 HTTP 1.0 support
 ----------------
 
-Sometimes you may want to use nginx's standard `ngx_proxy` module to proxy requests to
-another nginx machine configured by a location with `content_by_lua`. Because
-`proxy_pass` only supports the HTTP 1.0 protocol, we have to know
-the length of your response body and set the `Content-Length` header before emitting
-any data out. `ngx_lua` will automatically recognize HTTP 1.0 requests and try to send out an appropriate `Content-Length` header for you, at the first invocation of `ngx.print()` and `ngx.say`, assuming all the response body data
-is in a single call of `ngx.print()` or `ngx.say`. So if you want to
-support HTTP 1.0 clients like `ngx_proxy`, do not
-call `ngx.print()` or `ngx.say()` multiple times,
-try buffering the output data yourself wherever needed.
+The HTTP 1.0 protocol does not support chunked outputs and always requires an
+explicit `Content-Length` header when the response body is non-empty. So when
+an HTTP 1.0 request is present, This module will automatically buffer all the
+outputs of user calls of `ngx.say()` and `ngx.print()` and
+postpone sending response headers until it sees all the outputs in the response
+body, and at that time ngx_lua can calculate the total length of the body and
+construct a proper `Content-Length` header for the HTTP 1.0 client.
 
-Here is a small example:
-
-On machine A:
-
-    location /internal {
-        rewrite ^/internal/(.*) /lua/$1 break;
-        proxy_pass http://B;
-    }
-
-then on machine B:
-
-    location = /lua/foo {
-        content_by_lua '
-            data = "hello, world"
-            ngx.print(data)
-        ';
-    }
-
-Then accessing machine A's /internal/foo using curl gives the result that we expect.
-
-One caveat apples here: always send out the response body data in a single call of `ngx.print()` or `ngx.say()`, and subsequent calls of `ngx.print()` or `ngx.say()` will take no effect on the client side.
+Note that, common HTTP benchmark tools like `ab` and `http_load` always issue
+HTTP 1.0 requests by default. To force `curl` to send HTTP 1.0 requests, use
+the `-0` option.
 
 Performance
 ===========
@@ -1175,8 +1172,6 @@ lua-nginx-module [file list](http://github.com/simpl/ngx_devel_kit/downloads).
 
 1. Download the latest version of the release tarball of this module from
 lua-nginx-module [file list](http://github.com/chaoslawful/lua-nginx-module/downloads).
-(Mac 64-bit users need to edit ngx_lua's config file themselves, see the
-Known Issues section below.)
 
 1. Grab the nginx source code from [nginx.net](http://nginx.net/), for example,
 the version 0.8.54 (see nginx compatibility), and then build the source with
@@ -1233,6 +1228,7 @@ To run the test suite, you also need the following dependencies:
 	* drizzle-nginx-module: <http://github.com/chaoslawful/drizzle-nginx-module>
 	* rds-json-nginx-module: <http://github.com/agentzh/rds-json-nginx-module>
 	* set-misc-nginx-module: <http://github.com/agentzh/set-misc-nginx-module>
+	* headers-more-nginx-module: <http://github.com/agentzh/headers-more-nginx-module>
 	* memc-nginx-module: <http://github.com/agentzh/memc-nginx-module>
 	* srcache-nginx-module: <http://github.com/agentzh/srcache-nginx-module>
 	* ngx_auth_request: <http://mdounin.ru/hg/ngx_http_auth_request_module/>
@@ -1257,9 +1253,10 @@ filtering chain affects a lot. The correct configure adding order is:
 4. echo-nginx-module
 5. memc-nginx-module
 6. lua-nginx-module (i.e. this module)
-7. srcache-nginx-module
-8. drizzle-nginx-module
-9. rds-json-nginx-module
+7. headers-more-nginx-module
+8. srcache-nginx-module
+9. drizzle-nginx-module
+10. rds-json-nginx-module
 
 TODO
 ====
@@ -1284,6 +1281,40 @@ the Lua VM actively via Lua's debug hooks.
 
 Known Issues
 ============
+
+* Do not use the `error_page` directive or `ngx.exec()` or ngx_echo's `echo_exec` directive
+within locations to be captured by `ngx.location.capture()`
+or `ngx.location.capture_multi()`; ngx_lua cannot capture locations with internal redirections.
+Also be careful with server-wide `error_page` settings that are automatically inherited by
+*all* locations by default. If you're using the ngx_openresty bundle (<http://github.com/agentzh/ngx_openresty>),
+you can use the `no_error_pages` directive within locations that are to be captured from within Lua, for example,
+
+    server {
+        # server-wide error page settings
+        error_page 500 503 504 html/50x.html;
+
+        location /memc {
+            # explicitly disable error_page setting inheritance
+            #  within this location:
+            no_error_pages; # this directive is provided by ngx_openresty only
+
+            set $memc_key $query_string;
+            set $memc_cmd get;
+            memc_pass 127.0.0.1:11211;
+        }
+
+        location /api {
+            content_by_lua '
+                local res = ngx.location.capture(
+                    "/memc", { args = 'my_key' }
+                )
+                if res.status ~= ngx.HTTP_OK then
+                    ...
+                end
+                ...
+            ';
+        }
+    }
 
 * Because the standard Lua 5.1 interpreter's VM is not fully resumable, the
 `ngx.location.capture()` and `ngx.location.capture_multi` methods cannot be used within
@@ -1316,13 +1347,61 @@ use this form:
         package.loaded.xxx = nil
         require('xxx')
 
-* 64-bit Darwin OS (Mac OS X) needs special linking options to use LuaJIT. Change the line at the bottom of `config` file from
+* It's recommended to always put the following piece of code at the end of your Lua modules using `ngx.location.capture()` or `ngx.location.capture_multi()` to prevent casual use of module-level global variables that are shared among *all* requests, which is usually not what you want:
 
-		CORE_LIBS="-Wl,-E $CORE_LIBS"
+    getmetatable(foo.bar).__newindex = function (table, key, val)
+        error('Attempt to write to undeclared variable "' .. key .. '": '
+                .. debug.traceback())
+    end
 
-	to
+assuming your current Lua module is named `foo.bar`. This will guarantee that you have declared your Lua functions' local Lua variables as "local" in your Lua modules, or bad race conditions while accessing these variables under load will tragically happen. See the `Data Sharing within an Nginx Worker` for the reasons of this danger.
 
-		CORE_LIBS="-Wl,-E -Wl,-pagezero_size,10000 -Wl,-image_base,100000000 $CORE_LIBS"
+
+Data Sharing within an Nginx Worker
+===================================
+
+**NOTE: This mechanism behaves differently when code cache is turned off, and should be considered as a DIRTY TRICK. Backward compatibility is NOT guaranteed. Use at your own risk! We're going to design a whole new data-sharing mechanism.**
+
+If you want to globally share user data among all the requests handled by the same nginx worker process, you can encapsulate your shared data into a Lua module, require the module in your code, and manipulate shared data through it. It works because required Lua modules are loaded only once, and all coroutines will share the same copy of the module.
+
+Here's a complete small example:
+
+    -- mydata.lua
+    module("mydata", package.seeall)
+
+    local data = {
+        dog = 3,
+        cat = 4,
+        pig = 5,
+    }
+
+    function get_age(name)
+        return data[name]
+    end
+
+and then accessing it from your nginx.conf:
+
+    location /lua {
+        content_lua_by_lua '
+            local mydata = require("mydata")
+            ngx.say(mydata.get_age("dog"))
+        ';
+    }
+
+Your `mydata` module in this example will only be loaded
+and run on the first request to the location `/lua`,
+and all those subsequent requests to the same nginx
+worker process will use the reloaded instance of the
+module as well as the same copy of the data in it,
+until you send a `HUP` signal to the nginx master
+process to enforce a reload.
+
+This data sharing technique is essential for high-performance Lua apps built atop this module. It's common to cache reusable data globally.
+
+It's worth noting that this is *per-worker* sharing, not *per-server* sharing. That is, when you have multiple nginx worker processes under an nginx master, this data sharing cannot pass process boundry. If you indeed need server-wide data sharing, you can
+
+1. Use only a single nginx worker and a single server. This is not recommended when you have a mulit-core CPU or multiple CPUs in a single machine.
+2. Use some true backend storage like `memcached`, `redis`, or an RDBMS like `mysql`.
 
 See Also
 ========

@@ -802,9 +802,7 @@ ngx_http_lua_ngx_location_capture_multi(lua_State *L)
         lua_pop(L, 2); /* pop the subrequest argument and uri */
     }
 
-    lua_pushinteger(L, location_capture);
-
-    return lua_yield(L, 1);
+    return lua_yield(L, 0);
 }
 
 
@@ -1873,7 +1871,21 @@ ngx_http_lua_ngx_get(lua_State *L) {
         }
 
         lua_pushnumber(L, (lua_Number) r->headers_out.status);
+        return 1;
+    }
 
+    if (len == sizeof("is_subrequest") - 1 &&
+            ngx_strncmp(p, "is_subrequest", sizeof("is_subrequest") - 1) == 0)
+    {
+        lua_getglobal(L, GLOBALS_SYMBOL_REQUEST);
+        r = lua_touserdata(L, -1);
+        lua_pop(L, 1);
+
+        if (r == NULL) {
+            return luaL_error(L, "no request object found");
+        }
+
+        lua_pushboolean(L, r != r->main);
         return 1;
     }
 
