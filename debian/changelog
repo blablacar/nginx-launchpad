@@ -1,3 +1,11 @@
+nginx (1.0.4-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/*.lintian-overrides, debian/rules:
+    + Removed unused lintian for missing manpages
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 01 Jun 2011 19:12:25 +0530
+
 nginx (1.0.1-1) unstable; urgency=low
 
   * New upstream release
