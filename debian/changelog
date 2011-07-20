@@ -1,3 +1,16 @@
+nginx (1.0.5-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/control:
+    + nginx Depends on either nginx-full or nginx-light, Thanks to
+      Hans van Kranenburg <hans.van.kranenburg@mendix.com> (Closes: #633879)
+  * debian/copyright:
+    + Updated to latest DEP-5 specification
+    + Added some missing copyrights for modules
+    + Updated copyright years
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 20 Jul 2011 10:16:45 +0530
+
 nginx (1.0.4-1) unstable; urgency=low
 
   * New upstream release
