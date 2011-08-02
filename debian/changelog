@@ -1,3 +1,17 @@
+nginx (1.1.0-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/control:
+    + Added 'Upload Progress' module in long description of nginx-extras
+      (Closes: #635313)
+  * debian/rules, debian/modules:
+    + Removed deprecated module: nginx-secure-download
+  * debian/modules:
+    + Updated nginx-lua module to version: v0.2.1rc2
+    + Updated nginx-echo module to version: v0.37rc1
+
+ -- Kartik Mistry <kartik@debian.org>  Tue, 02 Aug 2011 23:40:39 +0530
+
 nginx (1.0.5-1) unstable; urgency=low
 
   * New upstream release

@@ -17,9 +17,13 @@
 #include <lauxlib.h>
 
 #include <nginx.h>
-#include <ndk.h>
+#include <ngx_core.h>
+#include <ngx_http.h>
 #include <ngx_md5.h>
 
+#if defined(NDK) && NDK
+#include <ndk.h>
+#endif
 
 #ifndef MD5_DIGEST_LENGTH
 #define MD5_DIGEST_LENGTH 16
@@ -46,10 +50,12 @@
     (NGX_HTTP_LUA_FILE_TAG_LEN + 2 * MD5_DIGEST_LENGTH)
 
 
+#if defined(NDK) && NDK
 typedef struct {
     size_t       size;
     u_char      *key;
 } ngx_http_lua_set_var_data_t;
+#endif
 
 typedef struct {
     lua_State       *lua;
@@ -155,8 +161,31 @@ typedef struct {
 
     /* whether it has run post_subrequest */
     unsigned         run_post_subrequest:1;
+    unsigned         req_header_cached:1;
 
 } ngx_http_lua_ctx_t;
+
+
+typedef struct ngx_http_lua_header_val_s ngx_http_lua_header_val_t;
+
+typedef ngx_int_t (*ngx_http_lua_set_header_pt)(ngx_http_request_t *r,
+    ngx_http_lua_header_val_t *hv, ngx_str_t *value);
+
+struct ngx_http_lua_header_val_s {
+    ngx_http_complex_value_t                value;
+    ngx_uint_t                              hash;
+    ngx_str_t                               key;
+    ngx_http_lua_set_header_pt              handler;
+    ngx_uint_t                              offset;
+    ngx_flag_t                              no_override;
+};
+
+typedef struct {
+    ngx_str_t                               name;
+    ngx_uint_t                              offset;
+    ngx_http_lua_set_header_pt     handler;
+
+} ngx_http_lua_set_header_t;
 
 
 extern ngx_module_t ngx_http_lua_module;

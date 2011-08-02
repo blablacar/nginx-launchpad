@@ -68,10 +68,12 @@ Synopsis
         }
 
         location /request_body {
-                # force reading request body (default off)
-                lua_need_request_body on;
+             # force reading request body (default off)
+             lua_need_request_body on;
+             client_max_body_size 50k;
+             client_body_in_single_buffer on;
 
-                content_by_lua 'ngx.print(ngx.var.request_body)';
+             content_by_lua 'ngx.print(ngx.var.request_body)';
         }
 
         # transparent non-blocking I/O in Lua via subrequests
@@ -291,6 +293,8 @@ for example,
         echo "sum = $sum, diff = $diff";
     }
 
+This directive requires the ngx_devel_kit module.
+
 set_by_lua_file
 ---------------
 
@@ -304,6 +308,8 @@ When the Lua code cache is on (this is the default), the user code is loaded
 once at the first request and cached. Nginx config must be reloaded if you
 modified the file and expected to see updated behavior. You can disable the
 Lua code cache by setting `lua_code_cache off;` in your nginx.conf.
+
+This directive requires the ngx_devel_kit module.
 
 content_by_lua
 --------------
@@ -421,7 +427,7 @@ Just as any other rewrite-phase handlers, `rewrite_by_lua` also runs in subreque
 
 Note that calling `ngx.exit(ngx.OK)` just returning from the current `rewrite_by_lua` handler, and the nginx request processing
 control flow will still continue to the content handler. To terminate the current request from within the current `rewrite_by_lua` handler,
-calling `ngx.exit(ngx.HTTP_OK)` for successful quits and `ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)` or its friends for failures.
+calling `ngx.exit` with status >= 200 (ngx.HTTP_OK) and status < 300 (ngx.HTTP_SPECIAL_RESPONSE) for successful quits and `ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)` (or its friends) for failures.
 
 access_by_lua
 --------------
@@ -493,7 +499,7 @@ Just as any other access-phase handlers, `access_by_lua` will NOT run in subrequ
 
 Note that calling `ngx.exit(ngx.OK)` just returning from the current `access_by_lua` handler, and the nginx request processing
 control flow will still continue to the content handler. To terminate the current request from within the current `access_by_lua` handler,
-calling `ngx.exit(ngx.HTTP_OK)` for successful quits and `ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)` or its friends for failures.
+calling `ngx.exit(status)` where status >= 200 (ngx.HTTP_OK) and status < 300 (ngx.HTTP_SPECIAL_RESPONSE) for successful quits and `ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)` or its friends for failures.
 
 content_by_lua_file
 -------------------
@@ -625,13 +631,22 @@ For example:
 
 That is, nginx variables cannot be created on-the-fly.
 
+Some special nginx variables like `$args` and `$limit_rate` can be assigned a value,
+some are not, like `$arg_PARAMETER`.
+
+Nginx regex group capturing variables `$1`, `$2`, `$3`, and etc, can be read by this
+interface as well, by writing `ngx.var[1]`, `ngx.var[2]`, `ngx.var[3]`, and etc.
+
 Core constants
----------------------
+--------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
     ngx.OK
+
     ngx.DONE
+
     ngx.AGAIN
+
     ngx.ERROR
 
 They take the same values of NGX_OK, NGX_AGAIN, NGX_DONE, NGX_ERROR, and etc. But now
@@ -644,40 +659,69 @@ HTTP method constants
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
     value = ngx.HTTP_GET
+
     value = ngx.HTTP_HEAD
+
     value = ngx.HTTP_PUT
+
     value = ngx.HTTP_POST
+
     value = ngx.HTTP_DELETE
 
 HTTP status constants
 ---------------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
-    value = ngx.HTTP_OK
-    value = ngx.HTTP_CREATED
-    value = ngx.HTTP_MOVED_PERMANENTLY
-    value = ngx.HTTP_MOVED_TEMPORARILY
-    value = ngx.HTTP_NOT_MODIFIED
-    value = ngx.HTTP_BAD_REQUEST
-    value = ngx.HTTP_GONE
-    value = ngx.HTTP_NOT_FOUND
-    value = ngx.HTTP_NOT_ALLOWED
-    value = ngx.HTTP_FORBIDDEN
-    value = ngx.HTTP_INTERNAL_SERVER_ERROR
-    value = ngx.HTTP_SERVICE_UNAVAILABLE
+    value = ngx.HTTP_OK (200)
+
+    value = ngx.HTTP_CREATED (201)
+
+    value = ngx.HTTP_SPECIAL_RESPONSE (300)
+
+    value = ngx.HTTP_MOVED_PERMANENTLY (301)
+
+    value = ngx.HTTP_MOVED_TEMPORARILY (302)
+
+    value = ngx.HTTP_SEE_OTHER (303)
+
+    value = ngx.HTTP_NOT_MODIFIED (304)
+
+    value = ngx.HTTP_BAD_REQUEST (400)
+
+    value = ngx.HTTP_UNAUTHORIZED (401)
+
+    value = ngx.HTTP_FORBIDDEN (403)
+
+    value = ngx.HTTP_NOT_FOUND (404)
+
+    value = ngx.HTTP_NOT_ALLOWED (405)
+
+    value = ngx.HTTP_GONE (410)
+
+    value = ngx.HTTP_INTERNAL_SERVER_ERROR (500)
+
+    value = ngx.HTTP_SERVICE_UNAVAILABLE (503)
 
 Nginx log level constants
 -------------------------
 * **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
     log_level = ngx.STDERR
+
     log_level = ngx.EMERG
+
     log_level = ngx.ALERT
+
     log_level = ngx.CRIT
+
     log_level = ngx.ERR
+
     log_level = ngx.WARN
+
     log_level = ngx.NOTICE
+
     log_level = ngx.INFO
+
     log_level = ngx.DEBUG
 
 print(a, b, ...)
@@ -793,11 +837,6 @@ in gzip'd responses that your Lua code is not able to handle properly. So always
 See <http://wiki.nginx.org/NginxHttpProxyModule#proxy_pass_request_headers> for more
 details.
 
-For now, do not use the `error_page` directive or `ngx.exec()` or ngx_echo's `echo_exec`
-directive within locations to be captured by `ngx.location.capture()`
-or `ngx.location.capture_multi()`; ngx_lua cannot capture locations with internal redirections.
-See the `Known Issues` section below for more details and working work-arounds.
-
 ngx.location.capture_multi({ {uri, options?}, {uri, options?}, ... })
 ---------------------------------------------------------------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
@@ -853,7 +892,7 @@ ngx.status
 ----------
 * **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
-Read and write the response status. This should be called
+Read and write the current request's response status. This should be called
 before sending out the response headers.
 
     ngx.status = ngx.HTTP_CREATED
@@ -863,7 +902,7 @@ ngx.header.HEADER
 -----------------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
-Set/add/clear response headers. Underscores (_) in the header names will be replaced by dashes (-) and the header names will be matched case-insentively.
+Set/add/clear the current request's response headers. Underscores (_) in the header names will be replaced by dashes (-) and the header names will be matched case-insentively.
 
     -- equivalent to ngx.header["Content-Type"] = 'text/plain'
     ngx.header.content_type = 'text/plain';
@@ -901,12 +940,78 @@ same does assigning an empty table:
 `ngx.header` is not a normal Lua table so you cannot
 iterate through it.
 
-For reading request headers, use `ngx.var.http_HEADER`, that is, nginx's standard $http_HEADER variables:
+For reading request headers, use the `ngx.req.get_headers()` function instead.
+
+Reading values from ngx.header.HEADER is not implemented yet,
+and usually you shouldn't need it.
+
+ngx.req.get_headers()
+---------------------
+* **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+
+Returns a Lua table holds all of the current request's request headers.
+
+Here's an example,
+
+    local h = ngx.req.get_headers()
+    for k, v in pairs(h) do
+        ...
+    end
+
+To read an individual header:
+
+    ngx.say("Host: ", ngx.req.get_headers()["Host"])
+
+For multiple instances of request headers like
+
+    Foo: foo
+    Foo: bar
+    Foo: baz
+
+the value of `ngx.req.get_headers()["Foo"]` will be a Lua (array) table like this:
+
+    {"foo", "bar", "baz"}
+
+Another way to read individual request headers is to use `ngx.var.http_HEADER`, that is, nginx's standard $http_HEADER variables:
 
     http://wiki.nginx.org/NginxHttpCoreModule#.24http_HEADER
 
-Reading values from ngx.header.HEADER is not implemented yet, and usually you
-shouldn't need it.
+ngx.req.set_header(header_name, header_value)
+---------------------------------------------
+* **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+
+Set the current request's request header named `header_name` to value `header_value`, overriding any existing ones.
+None of the current request's subrequests will be affected.
+
+Here's an example of setting the `Content-Length` header:
+
+    ngx.req.set_header("Content-Type", "text/css")
+
+The `header_value` can take an array list of values,
+for example,
+
+    ngx.req.set_header("Foo", {"a", "abc"})
+
+will produce two new request headers:
+
+    Foo: a
+    Foo: abc
+
+and old `Foo` headers will be overridden if there's any.
+
+When the `header_value` argument is `nil`, the request header will be removed. So
+
+    ngx.req.set_header("X-Foo", nil)
+
+is equivalent to
+
+    ngx.req.clear_header("X-Foo")
+
+ngx.req.clear_header(header_name)
+---------------------------------
+* **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+
+Clear the current request's request header named `header_name`. None of the current request's subrequests will be affected.
 
 ngx.exec(uri, args)
 -------------------
@@ -1028,8 +1133,10 @@ ngx.exit(status)
 ----------------
 * **Context:** `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
 
-Interrupts the execution of the current Lua thread and returns
+When status >= 200 (ngx.HTTP_OK), it will interrupt the execution of the current Lua thread and returns
 status code to nginx.
+
+When status == 0 (ngx.OK), it will quits the current phase handler (or content handler if content_by_lua* directives are used).
 
 The `status` argument can be `ngx.OK`, `ngx.ERROR`, `ngx.HTTP_NOT_FOUND`,
 `ngx.HTTP_MOVED_TEMPORARILY`,
@@ -1113,6 +1220,26 @@ Returns a formated string can be used as the cookie expiration time. The paramet
     ngx.say(ngx.cookie_time(1290079655))
         -- yields "Thu, 18-Nov-10 11:27:35 GMT"
 
+ngx.http_time(sec)
+--------------------
+* **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+
+Returns a formated string can be used as the http header time (for example, being used in Last-Modified header). The parameter `sec` is the timestamp in seconds (like those returned from `ngx.time`).
+
+    ngx.say(ngx.http_time(1290079655))
+        -- yields "Thu, 18 Nov 10 11:27:35 GMT"
+
+ngx.parse_http_time(str)
+------------------------
+* **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
+
+Parse the http time string (as returned by ngx.http_time) into seconds. Returns the seconds or `nil` if the input string is in bad forms.
+
+    local time = ngx.parse_http_time("Thu, 18 Nov 10 11:27:35 GMT")
+    if time == nil then
+        ...
+    end
+
 ngx.is_subrequest
 -----------------
 * **Context:** `set_by_lua*`, `rewrite_by_lua*`, `access_by_lua*`, `content_by_lua*`
@@ -1132,6 +1259,8 @@ For instance,
 
     local res = ndk.set_var.set_escape_uri('a/b');
     -- now res == 'a%2fb'
+
+This feature requires the ngx_devel_kit module.
 
 HTTP 1.0 support
 ----------------
@@ -1162,6 +1291,14 @@ with LuaJIT 2.0.
 
 Installation
 ============
+
+You're recommended to install this module as well as the Lua interpreter or LuaJIT 2.0 (with many other good stuffs) via the ngx_openresty bundle:
+
+<http://openresty.org>
+
+The installation steps are usually as simple as ./configure && make && make install
+
+Alternatively, you can compile this module with nginx core's source by hand:
 
 1. Install lua into your system. At least Lua 5.1 is required.
 Lua can be obtained freely from its project [homepage](http://www.lua.org/).
@@ -1202,15 +1339,13 @@ Compatibility
 
 The following versions of Nginx should work with this module:
 
+*   1.0.x (last tested: 1.0.4)
 *   0.9.x (last tested: 0.9.4)
-*   0.8.x (last tested: 0.8.54)
-*   0.7.x >= 0.7.46 (last tested: 0.7.68)
+*   0.8.x >= 0.8.54 (last tested: 0.8.54)
 
 Earlier versions of Nginx like 0.6.x and 0.5.x will **not** work.
 
-Note that `rewrite_by_lua` will NOT work for nginx 0.8.41 ~ 0.8.53.
-
-If you find that any particular version of Nginx above 0.7.44 does not
+If you find that any particular version of Nginx above 0.8.54 does not
 work with this module, please consider reporting a bug.
 
 Test Suite
@@ -1281,40 +1416,6 @@ the Lua VM actively via Lua's debug hooks.
 
 Known Issues
 ============
-
-* Do not use the `error_page` directive or `ngx.exec()` or ngx_echo's `echo_exec` directive
-within locations to be captured by `ngx.location.capture()`
-or `ngx.location.capture_multi()`; ngx_lua cannot capture locations with internal redirections.
-Also be careful with server-wide `error_page` settings that are automatically inherited by
-*all* locations by default. If you're using the ngx_openresty bundle (<http://github.com/agentzh/ngx_openresty>),
-you can use the `no_error_pages` directive within locations that are to be captured from within Lua, for example,
-
-    server {
-        # server-wide error page settings
-        error_page 500 503 504 html/50x.html;
-
-        location /memc {
-            # explicitly disable error_page setting inheritance
-            #  within this location:
-            no_error_pages; # this directive is provided by ngx_openresty only
-
-            set $memc_key $query_string;
-            set $memc_cmd get;
-            memc_pass 127.0.0.1:11211;
-        }
-
-        location /api {
-            content_by_lua '
-                local res = ngx.location.capture(
-                    "/memc", { args = 'my_key' }
-                )
-                if res.status ~= ngx.HTTP_OK then
-                    ...
-                end
-                ...
-            ';
-        }
-    }
 
 * Because the standard Lua 5.1 interpreter's VM is not fully resumable, the
 `ngx.location.capture()` and `ngx.location.capture_multi` methods cannot be used within
