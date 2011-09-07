@@ -71,6 +71,7 @@ static char *ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 #if (NGX_HTTP_GZIP)
 static ngx_int_t ngx_http_gzip_accept_encoding(ngx_str_t *ae);
+static ngx_uint_t ngx_http_gzip_quantity(u_char *p, u_char *last);
 static char *ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 #endif
@@ -629,6 +630,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, if_modified_since),
       &ngx_http_core_if_modified_since },
+
+    { ngx_string("max_ranges"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, max_ranges),
+      NULL },
 
     { ngx_string("chunked_transfer_encoding"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -2189,7 +2197,7 @@ ok:
 
 /*
  * gzip is enabled for the following quantities:
- *     "gzip; q=0.001" ... "gzip; q=0.999", "gzip; q=1"
+ *     "gzip; q=0.001" ... "gzip; q=1.000"
  * gzip is disabled for the following quantities:
  *     "gzip; q=0" ... "gzip; q=0.000", and for any invalid cases
  */
@@ -2197,8 +2205,7 @@ ok:
 static ngx_int_t
 ngx_http_gzip_accept_encoding(ngx_str_t *ae)
 {
-    u_char      c, *p, *start, *last;
-    ngx_uint_t  n, q;
+    u_char  *p, *start, *last;
 
     start = ae->data;
     last = start + ae->len;
@@ -2255,56 +2262,65 @@ equal:
         return NGX_DECLINED;
     }
 
+    if (ngx_http_gzip_quantity(p, last) == 0) {
+        return NGX_DECLINED;
+    }
+
+    return NGX_OK;
+}
+
+
+ngx_uint_t
+ngx_http_gzip_quantity(u_char *p, u_char *last)
+{
+    u_char      c;
+    ngx_uint_t  n, q;
+
     c = *p++;
 
-    if (c == '1') {
-        if (p == last || *p == ',' || *p == ' ') {
-            return NGX_OK;
-        }
-        return NGX_DECLINED;
+    if (c != '0' && c != '1') {
+        return 0;
     }
 
-    if (c != '0') {
-        return NGX_DECLINED;
-    }
+    q = (c - '0') * 100;
 
     if (p == last) {
-        return NGX_DECLINED;
+        return q;
     }
 
-    if (*p++ != '.') {
-        return NGX_DECLINED;
+    c = *p++;
+
+    if (c == ',' || c == ' ') {
+        return q;
+    }
+
+    if (c != '.') {
+        return 0;
     }
 
     n = 0;
-    q = 0;
 
     while (p < last) {
         c = *p++;
 
-        if (c == ',') {
+        if (c == ',' || c == ' ') {
             break;
         }
 
-        if (c >= '1' && c <= '9') {
-            n++;
-            q++;
-            continue;
-        }
-
-        if (c == '0') {
+        if (c >= '0' && c <= '9') {
+            q += c - '0';
             n++;
             continue;
         }
 
-        return NGX_DECLINED;
+        return 0;
     }
 
-    if (n < 4 && q != 0) {
-        return NGX_OK;
+    if (q > 100 || n > 3) {
+        return 0;
     }
 
-    return NGX_DECLINED;
+    return q;
 }
 
 #endif
@@ -3244,6 +3260,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->keepalive_disable = NGX_CONF_UNSET_UINT;
     clcf->satisfy = NGX_CONF_UNSET_UINT;
     clcf->if_modified_since = NGX_CONF_UNSET_UINT;
+    clcf->max_ranges = NGX_CONF_UNSET_UINT;
     clcf->client_body_in_file_only = NGX_CONF_UNSET_UINT;
     clcf->client_body_in_single_buffer = NGX_CONF_UNSET;
     clcf->internal = NGX_CONF_UNSET;
@@ -3450,6 +3467,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
                               NGX_HTTP_IMS_EXACT);
+    ngx_conf_merge_uint_value(conf->max_ranges, prev->max_ranges,
+                              0x7fffffff);
     ngx_conf_merge_uint_value(conf->client_body_in_file_only,
                               prev->client_body_in_file_only, 0);
     ngx_conf_merge_value(conf->client_body_in_single_buffer,
@@ -3482,7 +3501,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->keepalive_header, 0);
     ngx_conf_merge_uint_value(conf->keepalive_requests,
                               prev->keepalive_requests, 100);
-    ngx_conf_merge_msec_value(conf->lingering_close,
+    ngx_conf_merge_uint_value(conf->lingering_close,
                               prev->lingering_close, NGX_HTTP_LINGERING_ON);
     ngx_conf_merge_msec_value(conf->lingering_time,
                               prev->lingering_time, 30000);

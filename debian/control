@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Jose Parrella <bureado@debian.org>
 Uploaders: Fabio Tranchitella <kobold@debian.org>,
  Kartik Mistry <kartik@debian.org>,
- Michael Lustfield <mtecknology@ubuntu.com>
+ Michael Lustfield <michael@lustfield.net>
 Build-Depends: debhelper (>= 7),
                autotools-dev,
                libgd2-noxpm-dev,
@@ -79,10 +79,10 @@ Description: nginx web server with full set of core modules
    Geo, Gzip, Headers, Index, Limit Requests, Limit Zone, Log, Map, Memcached,
    Proxy, Referer, Rewrite, SCGI, Split Clients, SSI, Upstream, User ID, UWSGI
  Optional HTTP Modules:
-   Debug, WebDAV, GeoIP, Gzip Precompression, Image Filter, RealIP, Stub Status,
-   XSLT, IPv6, Addition
+   Addition, Debug, GeoIP, Gzip Precompression, HTTP Sub, Image Filter, IPv6,
+   RealIP, Stub Status, WebDAV, XSLT
  Mail Modules:
-   Mail Core, POP3, IMAP, SMTP, SSL
+   Mail Core, IMAP, POP3, SMTP, SSL
  Third Party Modules:
    Echo, Upstream Fair Queue
 
@@ -161,15 +161,13 @@ Description: nginx web server with full set of core modules and extras
    Geo, Gzip, Headers, Index, Limit Requests, Limit Zone, Log, Map, Memcached,
    Proxy, Referer, Rewrite, SCGI, Split Clients, SSI, Upstream, User ID, UWSGI
  Optional HTTP Modules:
-   Debug, WebDAV, Flash Streaming Video, GeoIP, Gzip Precompression, Image
-   Filter, RealIP, Stub Status, XSLT, IPv6, Embedded Perl, Secure Link, Random
-   Index, Addition
- Other Modules:
-   File AIO
+   Addition, Debug, WebDAV, Flash Streaming Video, GeoIP, Gzip Precompression,
+   HTTP Sub, Image Filter, RealIP, Stub Status, SSL, XSLT, IPv6, Embedded Perl,
+   Secure Link, Random Index
  Mail Modules:
    Mail Core, POP3, IMAP, SMTP, SSL
  Third Party Modules:
-   Echo, Embedded Lua, Nginx Development Kit, Upload Progress,
+   Echo, Embedded Lua, http push, Nginx Development Kit, Upload Progress,
    Upstream Fair Queue
 
 Package: nginx-extras-dbg
