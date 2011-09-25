@@ -1,3 +1,18 @@
+nginx (1.1.4-1) unstable; urgency=low
+
+  [Kartik Mistry]
+  * New upstream release.
+  * debian/rules:
+    + Added 'HTTPStubStatus' module in nginx-light also (Closes: #639661).
+    + Added 'HTTP MP4' module in nginx-extras. (Closes: #642022).
+  * Add new modules, Thanks to Dmitry E. Oboukhov <unera@debian.org>:
+    + NginxHttpHeadersMore Module (closes: #638820).
+    + HttpChunkin Module (closes: #638814).
+  * Renamed debian/modules/versions to debian/modules/README.modules-version,
+    added missing homepage and version information.
+
+ -- Kartik Mistry <kartik@debian.org>  Sun, 25 Sep 2011 13:44:48 +0530
+
 nginx (1.1.2-1) unstable; urgency=low
 
   [ Kartik Mistry ]

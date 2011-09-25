@@ -48,8 +48,10 @@ Description: small, but very powerful and efficient web server (documentation)
 Package: nginx-common
 Architecture: all
 Depends: ${misc:Depends}, lsb-base (>= 3.2-14)
-Replaces: nginx (<< 0.8.54-4), nginx-full (<< 0.8.54-4), nginx-light (<< 0.8.54-4), nginx-extras (<< 0.8.54-4)
-Breaks: nginx (<< 0.8.54-4), nginx-full (<< 0.8.54-4), nginx-light (<< 0.8.54-4), nginx-extras (<< 0.8.54-4)
+Replaces: nginx (<< 0.8.54-4), nginx-full (<< 0.8.54-4),
+ nginx-light (<< 0.8.54-4), nginx-extras (<< 0.8.54-4)
+Breaks: nginx (<< 0.8.54-4), nginx-full (<< 0.8.54-4),
+ nginx-light (<< 0.8.54-4), nginx-extras (<< 0.8.54-4)
 Description: small, but very powerful and efficient web server (common files)
  Nginx (engine x) is a web server created by Igor Sysoev and kindly provided to
  the open-source community. This server can be used as standalone HTTP server
@@ -119,7 +121,7 @@ Description: nginx web server with minimal set of core modules
    Core, Access, Auth Basic, Auto Index, Charset, Empty GIF, FastCGI, Gzip,
    Headers, Index, Log, Proxy, Rewrite, Split Clients, Upstream, User ID
  Optional HTTP Modules:
-   Gzip Precompression, IPv6
+   Gzip Precompression, IPv6, Stub Status
  Mail Modules:
    None
  Third Party Modules:
@@ -142,7 +144,8 @@ Description: Debugging symbols for nginx (light)
 
 Package: nginx-extras
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends}, nginx-common (= ${source:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends},
+ nginx-common (= ${source:Version})
 Provides: httpd, nginx
 Conflicts: nginx-full, nginx-light
 Description: nginx web server with full set of core modules and extras
@@ -162,12 +165,13 @@ Description: nginx web server with full set of core modules and extras
    Proxy, Referer, Rewrite, SCGI, Split Clients, SSI, Upstream, User ID, UWSGI
  Optional HTTP Modules:
    Addition, Debug, WebDAV, Flash Streaming Video, GeoIP, Gzip Precompression,
-   HTTP Sub, Image Filter, RealIP, Stub Status, SSL, XSLT, IPv6, Embedded Perl,
-   Secure Link, Random Index
+   HTTP Sub, Image Filter, MP4, RealIP, Stub Status, SSL, XSLT, IPv6, Embedded
+   Perl, Secure Link, Random Index
  Mail Modules:
    Mail Core, POP3, IMAP, SMTP, SSL
  Third Party Modules:
    Echo, Embedded Lua, http push, Nginx Development Kit, Upload Progress,
+   HttpHeadersMore, HttpChunkin,
    Upstream Fair Queue
 
 Package: nginx-extras-dbg
