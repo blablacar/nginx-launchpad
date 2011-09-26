@@ -22,7 +22,7 @@ README for Modules versions
 
  nginx-lua
   https://github.com/chaoslawful/lua-nginx-module.git
-  Version: 0.2.1rc2
+  Version: v0.3.1rc8
 
  nginx-upstream-fair
   https://github.com/gnosek/nginx-upstream-fair.git
@@ -34,7 +34,7 @@ README for Modules versions
   Version: 0.692
 
  nginx-upload-progress
-  https://github.com/masterzen/nginx-upload-progress-module/downloads
-  https://download.github.com/masterzen-nginx-upload-progress-module-v0.8.2-0-g8b55a34.tar.gz
+  https://github.com/masterzen/nginx-upload-progress-module.git
+  https://github.com/masterzen/nginx-upload-progress-module/archives/436ec80547bdc92bd7d9253b1815d4b964009883
   rm -r debian/nginx-upload-progress/test
-  Version: 0.8.2-0-g8b55a34
+  Version: v0.8.3-1-g436ec80
