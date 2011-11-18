@@ -119,7 +119,7 @@ Description: nginx web server with minimal set of core modules
  MODULES INCLUDED:
  Standard HTTP Modules:
    Core, Access, Auth Basic, Auto Index, Charset, Empty GIF, FastCGI, Gzip,
-   Headers, Index, Log, Proxy, Rewrite, Split Clients, Upstream, User ID
+   Headers, Index, Log, Map, Proxy, Rewrite, Split Clients, Upstream, User ID
  Optional HTTP Modules:
    Gzip Precompression, IPv6, Stub Status
  Mail Modules:
@@ -171,8 +171,7 @@ Description: nginx web server with full set of core modules and extras
    Mail Core, POP3, IMAP, SMTP, SSL
  Third Party Modules:
    Echo, Embedded Lua, http push, Nginx Development Kit, Upload Progress,
-   HttpHeadersMore, HttpChunkin,
-   Upstream Fair Queue
+   HttpHeadersMore, Upstream Fair Queue
 
 Package: nginx-extras-dbg
 Architecture: any

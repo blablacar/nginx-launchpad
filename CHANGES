@@ -1,4 +1,111 @@
 
+Changes with nginx 1.1.8                                         14 Nov 2011
+
+    *) Change: the ngx_http_limit_zone_module was renamed to the
+       ngx_http_limit_conn_module.
+
+    *) Change: the "limit_zone" directive was superseded by the
+       "limit_conn_zone" directive with a new syntax.
+
+    *) Feature: support for multiple "limit_conn" limits on the same level.
+
+    *) Feature: the "image_filter_sharpen" directive.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if
+       resolver got a big DNS response.
+       Thanks to Ben Hawkes.
+
+    *) Bugfix: in cache key calculation if internal MD5 implementation was
+       used; the bug had appeared in 1.0.4.
+
+    *) Bugfix: the "If-Modified-Since", "If-Range", etc. client request
+       header lines might be passed to backend while caching; or not passed
+       without caching if caching was enabled in another part of the
+       configuration.
+
+    *) Bugfix: the module ngx_http_mp4_module sent incorrect
+       "Content-Length" response header line if the "start" argument was
+       used.
+       Thanks to Piotr Sikora.
+
+
+Changes with nginx 1.1.7                                         31 Oct 2011
+
+    *) Feature: support of several DNS servers in the "resolver" directive.
+       Thanks to Kirill A. Korinskiy.
+
+    *) Bugfix: a segmentation fault occurred on start or during
+       reconfiguration if the "ssl" directive was used at http level and
+       there was no "ssl_certificate" defined.
+
+    *) Bugfix: reduced memory consumption while proxying big files if they
+       were buffered to disk.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if
+       "proxy_http_version 1.1" directive was used.
+
+    *) Bugfix: in the "expires @time" directive.
+
+
+Changes with nginx 1.1.6                                         17 Oct 2011
+
+    *) Change in internal API: now module context data are cleared while
+       internal redirect to named location.
+       Requested by Yichun Zhang.
+
+    *) Change: if a server in an upstream failed, only one request will be
+       sent to it after fail_timeout; the server will be considered alive if
+       it will successfully respond to the request.
+
+    *) Change: now the 0x7F-0x1F characters are escaped as \xXX in an
+       access_log.
+
+    *) Feature: "proxy/fastcgi/scgi/uwsgi_ignore_headers" directives support
+       the following additional values: X-Accel-Limit-Rate,
+       X-Accel-Buffering, X-Accel-Charset.
+
+    *) Feature: decrease of memory consumption if SSL is used.
+
+    *) Bugfix: some UTF-8 characters were processed incorrectly.
+       Thanks to Alexey Kuts.
+
+    *) Bugfix: the ngx_http_rewrite_module directives specified at "server"
+       level were executed twice if no matching locations were defined.
+
+    *) Bugfix: a socket leak might occurred if "aio sendfile" was used.
+
+    *) Bugfix: connections with fast clients might be closed after
+       send_timeout if file AIO was used.
+
+    *) Bugfix: in the ngx_http_autoindex_module.
+
+    *) Bugfix: the module ngx_http_mp4_module did not support seeking on
+       32-bit platforms.
+
+
+Changes with nginx 1.1.5                                         05 Oct 2011
+
+    *) Feature: the "uwsgi_buffering" and "scgi_buffering" directives.
+       Thanks to Peter Smit.
+
+    *) Bugfix: non-cacheable responses might be cached if
+       "proxy_cache_bypass" directive was used.
+       Thanks to John Ferlito.
+
+    *) Bugfix: in HTTP/1.1 support in the ngx_http_proxy_module.
+
+    *) Bugfix: cached responses with an empty body were returned
+       incorrectly; the bug had appeared in 0.8.31.
+
+    *) Bugfix: 201 responses of the ngx_http_dav_module were incorrect; the
+       bug had appeared in 0.8.32.
+
+    *) Bugfix: in the "return" directive.
+
+    *) Bugfix: the "ssl_session_cache builtin" directive caused segmentation
+       fault; the bug had appeared in 1.1.1.
+
+
 Changes with nginx 1.1.4                                         20 Sep 2011
 
     *) Feature: the ngx_http_upstream_keepalive module.

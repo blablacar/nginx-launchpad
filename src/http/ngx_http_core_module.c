@@ -143,7 +143,7 @@ static ngx_conf_enum_t  ngx_http_core_if_modified_since[] = {
 };
 
 
-static ngx_conf_enum_t  ngx_http_core_keepalive_disable[] = {
+static ngx_conf_bitmask_t  ngx_http_core_keepalive_disable[] = {
     { ngx_string("none"), NGX_HTTP_KEEPALIVE_DISABLE_NONE },
     { ngx_string("msie6"), NGX_HTTP_KEEPALIVE_DISABLE_MSIE6 },
     { ngx_string("safari"), NGX_HTTP_KEEPALIVE_DISABLE_SAFARI },
@@ -513,8 +513,8 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NULL },
 
     { ngx_string("keepalive_disable"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_enum_slot,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
+      ngx_conf_set_bitmask_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, keepalive_disable),
       &ngx_http_core_keepalive_disable },
@@ -718,7 +718,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NULL },
 
     { ngx_string("resolver"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_http_core_resolver,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -983,6 +983,8 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
     }
 
     if (rc == NGX_DONE) {
+        ngx_http_clear_location(r);
+
         r->headers_out.location = ngx_list_push(&r->headers_out.headers);
         if (r->headers_out.location == NULL) {
             ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -1784,18 +1786,19 @@ ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
     ngx_buf_t    *b;
     ngx_chain_t   out;
 
-    r->headers_out.status = status;
-
-    if (status == NGX_HTTP_NO_CONTENT) {
-        r->header_only = 1;
-        return ngx_http_send_header(r);
+    if (ngx_http_discard_request_body(r) != NGX_OK) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
+
+    r->headers_out.status = status;
 
     if (ngx_http_complex_value(r, cv, &val) != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
     if (status >= NGX_HTTP_MOVED_PERMANENTLY && status <= NGX_HTTP_SEE_OTHER) {
+
+        ngx_http_clear_location(r);
 
         r->headers_out.location = ngx_list_push(&r->headers_out.headers);
         if (r->headers_out.location == NULL) {
@@ -2543,6 +2546,9 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
             r->content_handler = NULL;
             r->loc_conf = (*clcfp)->loc_conf;
 
+            /* clear the modules contexts */
+            ngx_memzero(r->ctx, sizeof(void *) * ngx_http_max_module);
+
             ngx_http_update_location_config(r);
 
             cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
@@ -2995,6 +3001,12 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
     value = cf->args->elts;
 
     if (ngx_strcmp(value[0].data, "include") == 0) {
+        if (cf->args->nelts != 2) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid number of arguments"
+                               " in \"include\" directive");
+            return NGX_CONF_ERROR;
+        }
         file = value[1];
 
         if (ngx_conf_full_name(cf->cycle, &file, 1) != NGX_OK) {
@@ -3028,7 +3040,7 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
                                    "content type: \"%V\", "
                                    "previous content type: \"%V\"",
                                    &value[i], content_type, old);
-                continue;
+                goto next;
             }
         }
 
@@ -3041,6 +3053,9 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         type->key = value[i];
         type->key_hash = hash;
         type->value = content_type;
+
+    next:
+        continue;
     }
 
     return NGX_CONF_OK;
@@ -3374,7 +3389,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                                              ngx_cacheline_size);
 
     /*
-     * the special handling the "types" directive in the "http" section
+     * the special handling of the "types" directive in the "http" section
      * to inherit the http's conf->types_hash to all servers
      */
 
@@ -3401,7 +3416,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     if (conf->types == NULL) {
-        conf->types = ngx_array_create(cf->pool, 4, sizeof(ngx_hash_key_t));
+        conf->types = ngx_array_create(cf->pool, 3, sizeof(ngx_hash_key_t));
         if (conf->types == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -3426,7 +3441,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         types_hash.key = ngx_hash_key_lc;
         types_hash.max_size = conf->types_hash_max_size;
         types_hash.bucket_size = conf->types_hash_bucket_size;
-        types_hash.name = "mime_types_hash";
+        types_hash.name = "types_hash";
         types_hash.pool = cf->pool;
         types_hash.temp_pool = NULL;
 
@@ -3460,17 +3475,20 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->client_body_timeout,
                               prev->client_body_timeout, 60000);
 
-    ngx_conf_merge_uint_value(conf->keepalive_disable, prev->keepalive_disable,
-                              NGX_HTTP_KEEPALIVE_DISABLE_MSIE6
-                              |NGX_HTTP_KEEPALIVE_DISABLE_SAFARI);
+    ngx_conf_merge_bitmask_value(conf->keepalive_disable,
+                              prev->keepalive_disable,
+                              (NGX_CONF_BITMASK_SET
+                               |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6
+                               |NGX_HTTP_KEEPALIVE_DISABLE_SAFARI));
     ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy,
                               NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
                               NGX_HTTP_IMS_EXACT);
     ngx_conf_merge_uint_value(conf->max_ranges, prev->max_ranges,
-                              0x7fffffff);
+                              NGX_MAX_INT32_VALUE);
     ngx_conf_merge_uint_value(conf->client_body_in_file_only,
-                              prev->client_body_in_file_only, 0);
+                              prev->client_body_in_file_only,
+                              NGX_HTTP_REQUEST_BODY_FILE_OFF);
     ngx_conf_merge_value(conf->client_body_in_single_buffer,
                               prev->client_body_in_single_buffer, 0);
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
@@ -3478,11 +3496,11 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_size_value(conf->sendfile_max_chunk,
                               prev->sendfile_max_chunk, 0);
 #if (NGX_HAVE_FILE_AIO)
-    ngx_conf_merge_value(conf->aio, prev->aio, 0);
+    ngx_conf_merge_value(conf->aio, prev->aio, NGX_HTTP_AIO_OFF);
 #endif
     ngx_conf_merge_size_value(conf->read_ahead, prev->read_ahead, 0);
     ngx_conf_merge_off_value(conf->directio, prev->directio,
-                              NGX_MAX_OFF_T_VALUE);
+                              NGX_OPEN_FILE_DIRECTIO_OFF);
     ngx_conf_merge_off_value(conf->directio_alignment, prev->directio_alignment,
                               512);
     ngx_conf_merge_value(conf->tcp_nopush, prev->tcp_nopush, 0);
@@ -3519,7 +3537,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
              * to inherit it in all servers
              */
 
-            prev->resolver = ngx_resolver_create(cf, NULL);
+            prev->resolver = ngx_resolver_create(cf, NULL, 0);
             if (prev->resolver == NULL) {
                 return NGX_CONF_ERROR;
             }
@@ -3838,13 +3856,6 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
                                "server name \"%V\" has suspicious symbols",
                                &value[i]);
-        }
-
-        if (value[i].len == 1 && ch == '*') {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"server_name *\" is unsupported, use "
-                               "\"server_name_in_redirect off\" instead");
-            return NGX_CONF_ERROR;
         }
 
         sn = ngx_array_push(&cscf->server_names);
@@ -4389,7 +4400,7 @@ ngx_http_core_open_file_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         if (ngx_strncmp(value[i].data, "max=", 4) == 0) {
 
             max = ngx_atoi(value[i].data + 4, value[i].len - 4);
-            if (max == NGX_ERROR) {
+            if (max <= 0) {
                 goto failed;
             }
 
@@ -4531,7 +4542,6 @@ ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_core_loc_conf_t  *clcf = conf;
 
-    ngx_url_t   u;
     ngx_str_t  *value;
 
     if (clcf->resolver) {
@@ -4540,19 +4550,9 @@ ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    ngx_memzero(&u, sizeof(ngx_url_t));
-
-    u.host = value[1];
-    u.port = 53;
-
-    if (ngx_inet_resolve_host(cf->pool, &u) != NGX_OK) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%V: %s", &u.host, u.err);
-        return NGX_CONF_ERROR;
-    }
-
-    clcf->resolver = ngx_resolver_create(cf, &u.addrs[0]);
+    clcf->resolver = ngx_resolver_create(cf, &value[1], cf->args->nelts - 1);
     if (clcf->resolver == NULL) {
-        return NGX_OK;
+        return NGX_CONF_ERROR;
     }
 
     return NGX_CONF_OK;

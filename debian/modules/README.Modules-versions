@@ -5,8 +5,8 @@ README for Modules versions
  version.
 
  chunkin-nginx-module
-  https://github.com/agentzh/chunkin-nginx-module.git
-  Version: b0a3ee3
+  https://github.com/agentzh/chunkin-nginx-module
+  Version: v0.23rc1-0-g72c3e3f
 
  headers-more-nginx-module
   https://github.com/agentzh/headers-more-nginx-module.git

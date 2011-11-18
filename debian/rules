@@ -95,7 +95,6 @@ config.status.light: config.env.light config.sub config.guess
 	    --without-http_geo_module \
 	    --without-http_limit_req_module \
 	    --without-http_limit_zone_module \
-	    --without-http_map_module \
 	    --without-http_memcached_module \
 	    --without-http_referer_module \
 	    --without-http_scgi_module \
@@ -107,7 +106,6 @@ config.status.light: config.env.light config.sub config.guess
 	    --add-module=$(MODULESDIR)/nginx-echo \
             $(CONFIGURE_OPTS) >$@
 	touch $@
-
 
 config.status.extras: config.env.extras config.sub config.guess
 	cd $(BUILDDIR_extras) && ./configure \
@@ -149,7 +147,6 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --add-module=$(MODULESDIR)/nginx-lua \
 	    --add-module=$(MODULESDIR)/nginx-http-push \
 	    --add-module=$(MODULESDIR)/nginx-upload-progress \
-	    --add-module=$(MODULESDIR)/chunkin-nginx-module \
 	    --add-module=$(MODULESDIR)/headers-more-nginx-module \
             $(CONFIGURE_OPTS) >$@
 	touch $@
@@ -187,8 +184,10 @@ clean:
 	rm -f config.sub config.guess
 	dh_clean
 	rm -rf $(CURDIR)/debian/build-*
+mime-types:
+	
 
-install:
+install: mime-types
 	dh_testdir
 	dh_testroot
 	dh_prep
@@ -196,8 +195,8 @@ install:
 	dh_install
 
 binary-indep: install
-	dh_testdir -i
-	dh_testroot -i
+	dh_testdir
+	dh_testroot
 	dh_installman -i
 	dh_installchangelogs -i -k CHANGES
 	dh_installdocs -i
@@ -213,8 +212,8 @@ binary-indep: install
 	dh_builddeb -i
 
 binary-arch: install build-dbg
-	dh_testdir -a
-	dh_testroot -a
+	dh_testdir
+	dh_testroot
 	dh_installchangelogs -a -k CHANGES
 	dh_installdocs -a
 	dh_link -aA
