@@ -4,7 +4,8 @@ Priority: optional
 Maintainer: Jose Parrella <bureado@debian.org>
 Uploaders: Fabio Tranchitella <kobold@debian.org>,
  Kartik Mistry <kartik@debian.org>,
- Michael Lustfield <michael@lustfield.net>
+ Michael Lustfield <michael@lustfield.net>,
+ Dmitry E. Oboukhov <unera@debian.org>
 Build-Depends: debhelper (>= 7),
                autotools-dev,
                libgd2-noxpm-dev,
@@ -171,7 +172,7 @@ Description: nginx web server with full set of core modules and extras
    Mail Core, POP3, IMAP, SMTP, SSL
  Third Party Modules:
    Echo, Embedded Lua, http push, Nginx Development Kit, Upload Progress,
-   HttpHeadersMore, Upstream Fair Queue
+   HttpHeadersMore, Upstream Fair Queue, Chunkin
 
 Package: nginx-extras-dbg
 Architecture: any

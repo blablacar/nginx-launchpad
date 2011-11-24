@@ -1,3 +1,12 @@
+nginx (1.1.8-2) unstable; urgency=low
+
+  * debian/modules/chunkin-nginx-module:
+    + Reinclude HttpChunkin Module with new upstream version (closes: #638814)
+  * debian/control:
+    + Add myself to uploaders list.
+
+ -- Dmitry E. Oboukhov <unera@debian.org>  Thu, 24 Nov 2011 14:16:50 +0530
+
 nginx (1.1.8-1) unstable; urgency=low
 
   [Kartik Mistry]
