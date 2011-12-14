@@ -4,7 +4,7 @@ Source: http://nginx.net/
 Upstream-Contact: Igor Sysoev <igor@sysoev.ru>
 
 Files: *
-Copyright: © 2002-2010, Igor Sysoev <igor@sysoev.ru>
+Copyright: © 2002-2011, Igor Sysoev <igor@sysoev.ru>
 License:
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -53,7 +53,7 @@ License:
 
 Files: modules/agentzh-chunkin-nginx-module-*/*
  modules/agentzh-headers-more-nginx-module-*/*
-Copyright: © 2009, Taobao Inc., Alibaba Group ( http://www.taobao.com ).
+Copyright: © 2009, Taobao Inc., Alibaba Group <http://www.taobao.com>.
 Copyright: © 2009, 2010, 2011, Zhang "agentzh" Yichun (章亦春) <agentzh@gmail.com>.
 License:
  Same as upstream license.
@@ -62,6 +62,6 @@ Files: debian/*
 Copyright: © 2006-2010, Jose Parrella <joseparrella@cantv.net>,
                         Fabio Tranchitella <kobold@debian.org>,
            © 2009-2011, Kartik Mistry <kartik@debian.org>,
-           © 2011, Michael Lustfield michaellustfield@ubuntu.com>.
+           © 2011, Michael Lustfield <michael@lustfield.net>.
 License:
  Same as upstream license.

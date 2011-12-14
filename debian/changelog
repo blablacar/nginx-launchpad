@@ -1,3 +1,24 @@
+nginx (1.1.11-1) unstable; urgency=low
+
+  [Kartik Mistry]
+  * New upstream release.
+  * debian/control:
+    + Set priority to extra for nginx-light and nginx-extras binaries
+      (Policy: Section 2.5)
+  * debian/patches/607418-ipv6-addresses.diff:
+    + Removed. Merged upstream with 1.1.9 release.
+  * debian/copyright:
+    + Updated upstream copyright year, updated Michael's email address, misc
+      changes for format.
+
+  [Michael Lustfield]
+  * debian/conf/fastcgi_params:
+    + Changed $server_https to $https per new feature in 1.1.11.
+  * debian/conf/nginx.conf:
+    + Removed map for $server_https as it's no longer needed.
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 14 Dec 2011 09:45:40 +0530
+
 nginx (1.1.8-2) unstable; urgency=low
 
   * debian/modules/chunkin-nginx-module:
