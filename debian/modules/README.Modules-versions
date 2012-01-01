@@ -21,8 +21,9 @@ README for Modules versions
   Version: 0.37rc1
 
  nginx-lua
+  Homepage: https://github.com/chaoslawful/lua-nginx-module
   https://github.com/chaoslawful/lua-nginx-module.git
-  Version: v0.3.1rc8
+  Version: v0.3.1rc43
 
  nginx-upstream-fair
   https://github.com/gnosek/nginx-upstream-fair.git

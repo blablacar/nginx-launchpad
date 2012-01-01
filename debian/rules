@@ -21,6 +21,11 @@ else
 	CFLAGS += -O2
 endif
 
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	MAKEFLAGS += -j$(NUMJOBS)
+endif
+
 config.sub:
 	dh_testdir
 ifneq "$(wildcard /usr/share/misc/config.sub)" ""

@@ -1,4 +1,4 @@
-Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=174
+Format: http://anonscm.debian.org/gitweb/?p=dbnpolicy/policy.git;a=blob;f=copyright-format/copyright-format.xml;hb=HEAD
 Upstream-Name: nginx
 Source: http://nginx.net/
 Upstream-Contact: Igor Sysoev <igor@sysoev.ru>
@@ -61,7 +61,8 @@ License:
 Files: debian/*
 Copyright: © 2006-2010, Jose Parrella <joseparrella@cantv.net>,
                         Fabio Tranchitella <kobold@debian.org>,
-           © 2009-2011, Kartik Mistry <kartik@debian.org>,
-           © 2011, Michael Lustfield <michael@lustfield.net>.
+           © 2009-2012, Kartik Mistry <kartik@debian.org>,
+           © 2012, Michael Lustfield <michael@lustfield.net>,
+                   Dmitry E. Oboukhov <unera@debian.org>.
 License:
  Same as upstream license.

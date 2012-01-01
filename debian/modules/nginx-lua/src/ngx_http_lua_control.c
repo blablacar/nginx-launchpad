@@ -69,6 +69,10 @@ ngx_http_lua_ngx_exec(lua_State *L)
     }
 
     uri.data = ngx_palloc(r->pool, len);
+    if (uri.data == NULL) {
+        return luaL_error(L, "out of memory");
+    }
+
     ngx_memcpy(uri.data, p, len);
 
     uri.len = len;
@@ -91,6 +95,10 @@ ngx_http_lua_ngx_exec(lua_State *L)
             p = (u_char *) lua_tolstring(L, 2, &len);
 
             user_args.data = ngx_palloc(r->pool, len);
+            if (user_args.data == NULL) {
+                return luaL_error(L, "out of memory");
+            }
+
             ngx_memcpy(user_args.data, p, len);
 
             user_args.len = len;
@@ -206,7 +214,17 @@ ngx_http_lua_ngx_redirect(lua_State *L)
         return luaL_error(L, "out of memory");
     }
 
-    r->headers_out.location->hash = 1;
+    r->headers_out.location->hash =
+            ngx_hash(ngx_hash(ngx_hash(ngx_hash(ngx_hash(ngx_hash(
+                    ngx_hash('l', 'o'), 'c'), 'a'), 't'), 'i'), 'o'), 'n');
+
+#if 0
+    dd("location hash: %lu == %lu",
+            (unsigned long) r->headers_out.location->hash,
+            (unsigned long) ngx_hash_key_lc((u_char *) "Location",
+            sizeof("Location") - 1));
+#endif
+
     r->headers_out.location->value.len = len;
     r->headers_out.location->value.data = uri;
     ngx_str_set(&r->headers_out.location->key, "Location");

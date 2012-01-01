@@ -1,9 +1,9 @@
 Source: nginx
 Section: httpd
 Priority: optional
-Maintainer: Jose Parrella <bureado@debian.org>
-Uploaders: Fabio Tranchitella <kobold@debian.org>,
- Kartik Mistry <kartik@debian.org>,
+Maintainer: Kartik Mistry <kartik@debian.org>
+Uploaders: Jose Parrella <bureado@debian.org>,
+ Fabio Tranchitella <kobold@debian.org>,
  Michael Lustfield <michael@lustfield.net>,
  Dmitry E. Oboukhov <unera@debian.org>
 Build-Depends: debhelper (>= 7),

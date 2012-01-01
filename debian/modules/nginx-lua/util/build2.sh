@@ -9,14 +9,18 @@ force=$2
 
 # the ngx-build script is from https://github.com/agentzh/nginx-devel-utils
 
+            #--add-module=$home/work/nginx_upload_module-2.2.0 \
+
             #--without-pcre \
             #--without-http_rewrite_module \
+            #--with-cc=gcc46 \
 
-ngx-build $force $version \
+time ngx-build $force $version \
+        --with-http_ssl_module \
             --add-module=$root/../ndk-nginx-module \
             --add-module=$root/../set-misc-nginx-module \
-            --with-cc-opt=$'-O3' \
-            --with-ld-opt="-Wl,-rpath=/opt/drizzle/lib:/usr/local/lib:/home/lz/lib:/usr/local/openresty/luajit/lib" \
+            --with-cc-opt=$'-I/opt/pcre821jit/include' \
+            --with-ld-opt="-L/opt/pcre821jit/lib -Wl,-rpath,/opt/pcre821jit/lib:/opt/drizzle/lib:/home/lz/lib:/usr/local/openresty/luajit/lib:/usr/local/lib" \
             --without-mail_pop3_module \
             --without-mail_imap_module \
             --without-mail_smtp_module \
@@ -35,6 +39,9 @@ ngx-build $force $version \
                 --add-module=$root/../drizzle-nginx-module \
                 --add-module=$home/work/nginx/ngx_http_upstream_keepalive-2ce9d8a1ca93 \
                 --add-module=$root/../rds-json-nginx-module \
-                $opts #\
-                #--with-debug
+          --with-select_module \
+          --with-poll_module \
+          --with-rtsig_module \
+                $opts \
+                --with-debug
 
