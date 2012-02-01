@@ -1,3 +1,28 @@
+nginx (1.1.14-1) unstable; urgency=low
+
+  [Cyril Lavier]
+  * New upstream release.
+  * debian/rules:
+    + Resolved the lintian errors "unstripped-binary-or-object" with a
+      cleaner correction (Thanks to Steven Chamberlain for the patch).
+    + Added a check on the parallel building to force NUMJOBS to 1 if
+      the value 0 is given.
+  * debian/modules:
+    + Updated nginx-lua module to version 0.4.1.
+
+  [Kartik Mistry]
+  * debian/rules, debian/control, debian/copyright,
+    debian/modules/nginx-upload-module:
+    + Added Upload module to nginx-extras, updated long description and
+      copyright. (Closes: #654593)
+  * debian/modules/README.modules:
+    + Added Homepage information for some modules.
+  * debian/rules:
+    + Enable hardened build flags, Thanks to Moritz Muehlenhoff for patch.
+      (Closes: #658186)
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 01 Feb 2012 17:50:05 +0530
+
 nginx (1.1.12-1) unstable; urgency=low
 
   [Kartik Mistry]
