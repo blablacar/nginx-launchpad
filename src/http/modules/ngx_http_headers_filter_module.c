@@ -149,7 +149,9 @@ ngx_http_headers_filter(ngx_http_request_t *r)
             && r->headers_out.status != NGX_HTTP_PARTIAL_CONTENT
             && r->headers_out.status != NGX_HTTP_MOVED_PERMANENTLY
             && r->headers_out.status != NGX_HTTP_MOVED_TEMPORARILY
-            && r->headers_out.status != NGX_HTTP_NOT_MODIFIED))
+            && r->headers_out.status != NGX_HTTP_SEE_OTHER
+            && r->headers_out.status != NGX_HTTP_NOT_MODIFIED
+            && r->headers_out.status != NGX_HTTP_TEMPORARY_REDIRECT))
     {
         return ngx_http_next_header_filter(r);
     }
@@ -530,7 +532,7 @@ ngx_http_headers_expires(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     hcf->expires_time = ngx_parse_time(&value[n], 1);
 
-    if (hcf->expires_time == NGX_ERROR) {
+    if (hcf->expires_time == (time_t) NGX_ERROR) {
         return "invalid value";
     }
 
@@ -538,10 +540,6 @@ ngx_http_headers_expires(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         && hcf->expires_time > 24 * 60 * 60)
     {
         return "daily time value must be less than 24 hours";
-    }
-
-    if (hcf->expires_time == NGX_PARSE_LARGE_TIME) {
-        return "value must be less than 68 years";
     }
 
     if (minus) {

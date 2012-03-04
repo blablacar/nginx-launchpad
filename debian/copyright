@@ -1,10 +1,11 @@
-Format: http://anonscm.debian.org/gitweb/?p=dbnpolicy/policy.git;a=blob;f=copyright-format/copyright-format.xml;hb=HEAD
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: nginx
 Source: http://nginx.net/
 Upstream-Contact: Igor Sysoev <igor@sysoev.ru>
 
 Files: *
-Copyright: © 2002-2011, Igor Sysoev <igor@sysoev.ru>
+Copyright: 2002-2012 Igor Sysoev
+Copyright: 2011,2012 Nginx, Inc.
 License:
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -45,7 +46,7 @@ Copyright: © 2009, Leo Ponomarev
 License:
  Same as upstream license.
 
-Files: nginx-upload-progress/ngx_http_uploadprogress_module.c
+Files: modules/nginx-upload-progress/ngx_http_uploadprogress_module.c
 Copyright: © 2007, Brice Figureau
 Copyright: © 2002-2007, Igor Sysoev
 License:

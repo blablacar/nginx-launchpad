@@ -24,7 +24,6 @@ ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 	ifeq (${NUMJOBS}, 0)
 		NUMJOBS = 1
 	endif
-	MAKEFLAGS += -j$(NUMJOBS)
 endif
 
 config.sub:
@@ -78,6 +77,7 @@ config.status.full: config.env.full config.sub config.guess
 	    --with-md5=/usr/include/openssl \
 	    --with-mail \
 	    --with-mail_ssl_module \
+	    --add-module=$(MODULESDIR)/nginx-auth-pam \
 	    --add-module=$(MODULESDIR)/nginx-echo \
 	    --add-module=$(MODULESDIR)/nginx-upstream-fair \
             $(CONFIGURE_OPTS) >$@
@@ -147,15 +147,15 @@ config.status.extras: config.env.extras config.sub config.guess
 	    --with-md5=/usr/include/openssl \
 	    --with-mail \
 	    --with-mail_ssl_module \
+	    --add-module=$(MODULESDIR)/chunkin-nginx-module \
+	    --add-module=$(MODULESDIR)/headers-more-nginx-module \
 	    --add-module=$(MODULESDIR)/nginx-development-kit \
-	    --add-module=$(MODULESDIR)/nginx-upstream-fair \
 	    --add-module=$(MODULESDIR)/nginx-echo \
-	    --add-module=$(MODULESDIR)/nginx-lua \
 	    --add-module=$(MODULESDIR)/nginx-http-push \
+	    --add-module=$(MODULESDIR)/nginx-lua \
 	    --add-module=$(MODULESDIR)/nginx-upload-module \
 	    --add-module=$(MODULESDIR)/nginx-upload-progress \
-	    --add-module=$(MODULESDIR)/headers-more-nginx-module \
-	    --add-module=$(MODULESDIR)/chunkin-nginx-module \
+	    --add-module=$(MODULESDIR)/nginx-upstream-fair \
             $(CONFIGURE_OPTS) >$@
 	touch $@
 
@@ -165,7 +165,7 @@ config.status.%:
 build-arch.%: config.status.%
 	dh_testdir
 	dh_prep
-	$(MAKE) -C $(BUILDDIR_$*) build
+	$(MAKE) -j$(NUMJOBS) -C $(BUILDDIR_$*) build
 
 build-arch: $(foreach flavour,$(FLAVOURS),build-arch.$(flavour))
 	dh_testdir
