@@ -1,3 +1,25 @@
+nginx (1.1.17-1) unstable; urgency=medium
+
+  [Kartik Mistry]
+  * New upstream release. (Closes: #664137)
+    + Fixed malformed HTTP responses. See: CVE-2012-1180 for more details.
+  * Set urgency to medium due to security issue.
+
+  [Cyril Lavier]
+  * debian/rules:
+    + Set NUMJOBS to 1 if no value is given
+    + Added Auth PAM module to nginx-extras
+    + Enable hardened flags for perl module (Thanks to Simon Ruderich for
+      the patch) (Closes: #664090).
+  * debian/conf/sites-available/default:
+    + Added the fastcgi_pass for php5-fpm. (Closes: #662997)
+  * debian/nginx-common.postrm, debian/rules, debian/nginx-common.postinst,
+    debian/nginx-common.prerm, debian/nginx-common.service:
+    + Added the systemd support. Thanks to Michael Stapelberg for the patch.
+      (Closes: #662799)
+
+ -- Kartik Mistry <kartik@debian.org>  Fri, 16 Mar 2012 10:27:38 +0530
+
 nginx (1.1.16-1) unstable; urgency=low
 
   [Cyril Lavier]
