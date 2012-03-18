@@ -1,3 +1,17 @@
+nginx (1.1.17-2) unstable; urgency=high
+
+  [Cyril Lavier]
+  * debian/control:
+    + Added build dependency to dpkg-dev (>= 1.15.7). (Closes: #664212)
+  * debian/patches/perl-use-dpkg-buildflags.patch:
+    + Added patch to harden flags for perl module (Thanks to Simon Ruderich
+      for the patch). (Closes: #664090)
+
+  [Kartik Mistry]
+  * Set urgency due to fix for security and RC bugs with 1.17.1-1 upload.
+
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Sun, 18 Mar 2012 09:31:19 +0530
+
 nginx (1.1.17-1) unstable; urgency=medium
 
   [Kartik Mistry]
