@@ -1,3 +1,20 @@
+nginx (1.1.18-1) unstable; urgency=low
+
+  [Cyril Lavier]
+  * New upstream release.
+  * New binaries introduced: nginx-naxsi, nginx-naxsi-dbg.
+  * debian/modules/nginx-cache-purge:
+    + Added nginx cache purge 1.5 to nginx-naxsi.
+  * debian/rules, debian/control, debian/nginx-naxsi.dirs,
+    debian/nginx-naxsi.install, debian/nginx-naxsi.postinst,
+    debian/nginx-naxsi.postrm, debian/nginx-naxsi.prerm,
+    debian/modules/naxsi, debian/conf/naxsi_core.rules,
+    debian/modules/README.Modules-versions, debian/conf/nginx.conf:
+    + Added nginx-naxsi flavour.
+    + Added naxsi 0.44 to nginx-naxsi.
+
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Thu, 29 Mar 2012 22:43:07 +0530
+
 nginx (1.1.17-2) unstable; urgency=high
 
   [Cyril Lavier]
