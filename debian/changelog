@@ -1,3 +1,26 @@
+nginx (1.1.19-1) unstable; urgency=high
+
+  [Cyril Lavier]
+  * New upstream release.
+    + Fixed a buffer overflow in the ngx_http_mp4_module. See: CVE-2012-2089
+      for more details.
+  * debian/copyright:
+    + Updated licenses.
+  * debian/nginx-extras.postinst, debian/nginx-full.postinst,
+    debian/nginx-light.postinst, debian/nginx-naxsi.postinst:
+    + Removing the debug markers. (Closes: #667894)
+  * debian/control, debian/rules, debian/copyright,
+    debian/modules/nginx-dav-ext-module:
+    + Added nginx-dav-ext-module in full and extras.
+  * debian/modules/naxsi:
+    + Updated naxsi to the SVN snapshot (r280) to fix the licence issue with
+      OpenSSL.
+
+  [Kartik Mistry]
+  * Misc cleanups in debian/control, debian/copyright.
+
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Fri, 13 Apr 2012 16:58:59 +0530
+
 nginx (1.1.18-1) unstable; urgency=low
 
   [Cyril Lavier]
