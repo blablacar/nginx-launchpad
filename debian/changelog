@@ -1,3 +1,38 @@
+nginx (1.2.6-1) unstable; urgency=low
+
+  [ Kartik Mistry ]
+  * New upstream release.
+  * debian/nginx-common.nginx.init:
+    + Used log_*_msg instead of echo for better init messages.
+    + Added patch to check start-stop-daemon exit status, Thanks to
+      Sergey B Kirpichev <skirpichev@gmail.com> (Closes: #695374).
+  * debian/po/ja.po:
+    + Added new Japanese translation. Thanks to victory <victory.deb@gmail.com>
+      (Closes: #692481).
+  * debian/po/pt_BR.po:
+    + Added new Brazilian Portuguese translation. Thanks to
+      Adriano Rafael Gomes <adrianorg@gmail.com> (Closes: #692481).
+
+  [ Cyril Lavier ]
+  * debian/rules
+    + Added RealIP module in nginx-naxsi (Closes: #693302).
+  * debian/modules/nginx-cache-purge/
+    + Updated nginx-cache-purge module with the 2.0 version.
+  * debian/modules/nginx-lua/
+    + Updated nginx-lua module with the 0.7.8 version.
+  * debian/modules/nginx-echo/
+    + Updated the nginx-echo module with the 0.41 version.
+  * debian/modules/headers-more-nginx-module/
+    + Updated the Headers-more module with the 0.19 version.
+  * debian/modules/README.Modules-versions
+    + Updated the current version of modules following the updates.
+
+  [ Michael Lustfield ]
+  * debian/conf/sites-available/default
+    + Uncommented listen lines to make server block default.
+
+ -- Kartik Mistry <kartik@debian.org>  Tue, 18 Dec 2012 10:29:18 +0530
+
 nginx (1.2.4-2) unstable; urgency=low
 
   * debian/conf/nginx.conf:
