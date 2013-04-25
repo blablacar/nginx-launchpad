@@ -1,3 +1,33 @@
+nginx (1.4.0-1) experimental; urgency=low
+
+  [ Kartik Mistry ]
+  * New upstream release (Closes: #706127).
+  * debian/rules, debian/modules/:
+    + Removed chunkin-nginx-module as it no longer supported for nginx 1.3.9+
+    + Updated nginx-lua module to 0.8.0
+    + Patched nginx-upload module as described in modules/README file.
+  * Refreshed debian/patches/perl-use-dpkg-buildflags.patch
+  * debian/logrotate:
+    + Set default log to keep for 52 weeks instead of 52 days. Thanks to
+      RjY <rjy@users.sourceforge.net> for patch (Closes: #696440)
+  * debian/rules:
+    + Added cache purge module to nginx-extras.
+  * debian/control:
+    + Suggests: nginx-docs. Thanks to colliar <colliar4ever@aol.com> for
+      reporting bug (Closes: #702923)
+  * debian/copyright:
+    + Updated copyright year.
+    + Fixed broken license text.
+
+  [ Michael Lustfield ]
+  * debian/conf/sites-available/default:
+    + Added ipv6_only=on to default server block. (Closes: #700857)
+    + Added default_server to ipv4 default server block. Now matches ipv6.
+  * debian/rules:
+    + Removed obsolete --with-md5 and --with-sha1
+
+ -- Kartik Mistry <kartik@debian.org>  Thu, 25 Apr 2013 12:51:45 +0530
+
 nginx (1.2.6-1) unstable; urgency=low
 
   [ Kartik Mistry ]
