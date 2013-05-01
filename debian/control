@@ -63,7 +63,7 @@ Breaks: nginx (<< 0.8.54-4),
         nginx-extras (<< 0.8.54-4),
         nginx-full (<< 0.8.54-4),
         nginx-light (<< 0.8.54-4)
-Suggests: nginx-doc
+Suggests: nginx-doc, fcgiwrap
 Description: small, powerful, scalable web/proxy server - common files
  Nginx ("engine X") is a high-performance web and reverse proxy server
  created by Igor Sysoev. It can be used both as a standalone web server
@@ -103,7 +103,8 @@ Description: nginx web/proxy server (standard version)
  .
  MAIL MODULES: Mail Core, IMAP, POP3, SMTP, SSL.
  .
- THIRD PARTY MODULES: Auth PAM, DAV Ext, Echo, Upstream Fair Queue.
+ THIRD PARTY MODULES: Auth PAM, DAV Ext, Echo, HTTP Substitution Filter,
+ Upstream Fair Queue.
 
 Package: nginx-full-dbg
 Architecture: any
@@ -201,8 +202,9 @@ Description: nginx web/proxy server (extended version)
  MAIL MODULES: Mail Core, IMAP, POP3, SMTP, SSL.
  .
  THIRD PARTY MODULES: Auth PAM, Chunkin, DAV Ext, Echo, Embedded Lua,
- HttpHeadersMore, http push, Nginx Development Kit, Upload module,
- Upload Progress, Upstream Fair Queue.
+ Fancy Index, HttpHeadersMore, HTTP Substitution Filter, http push,
+ Nginx Development Kit, Upload module, Upload Progress,
+ Upstream Fair Queue.
 
 Package: nginx-extras-dbg
 Architecture: any
@@ -274,10 +276,8 @@ Priority: extra
 Depends: daemon,
          dbconfig-common,
          nginx-naxsi (>= ${source:Version}),
-         python-mysqldb,
          python-twisted-web,
          ${misc:Depends}
-Recommends: mysql-server
 Provides: httpd,
           naxsi,
           nginx

@@ -1,3 +1,40 @@
+nginx (1.4.0-2) experimental; urgency=low
+
+  [ Ondřej Surý ]
+  * debian/modules/:
+    + Updated nginx-echo, nginx-cache-purge and naxsi modules.
+    + Removed useless .gitignore, .gitmodules files.
+
+  [ Kartik Mistry ]
+  * debian/modules/nginx-upload:
+    + This module no longer works with 1.3.x and above. Removed as of now.
+  * debian/modules/ngx-fancyindex:
+    + Added Fancy Indexes module (Closes: #704210)
+  * debian/copyright:
+    + Fixed path for modules in Files: field.
+    + Updated copyright for debian/*
+  * debian/rules:
+    + Enabled spdy module (Closes: #706195).
+  * debian/control:
+    + Suggests: fcgiwrap (Closes: #701508).
+
+  [ Cyril Lavier ]
+  * debian/conf/naxsi-ui.conf:
+    + Added configuration file for nginx-naxsi-ui using SQLite
+      (Closes: #699678).
+  * debian/nginx-naxsi-ui.config, debian/nginx-naxsi-ui.postinst,
+    debian/nginx-naxsi-ui.postrm, debian/nginx-naxsi-ui.prerm,
+    debian/nginx-naxsi-ui.templates:
+    + Removed these files as they are not necessary anymore with the
+      database engine switching from MySQL to SQLite.
+  * debian/control:
+    + Removed dependencies against MySQL.
+  * debian/rules, debian/modules/ngx_http_substitutions_filter_module,
+    debian/README.Modules-versions:
+    + Added http_substitutions_filter module. (Closes: #706456)
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 01 May 2013 10:48:43 +0530
+
 nginx (1.4.0-1) experimental; urgency=low
 
   [ Kartik Mistry ]
