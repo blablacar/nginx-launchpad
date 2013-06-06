@@ -1,3 +1,24 @@
+nginx (1.4.1-2) unstable; urgency=medium
+
+  [ Kartik Mistry]
+  * Urgency set to medium due to Security and RC bugs.
+  * debian/conf/sites-available/default:
+    + Fixed typo in listen ipv6only=on (Closes: #707684)
+
+  [ Cyril Lavier ]
+  * debian/control:
+    + Replaced the build-dep libgd2-noxpm-dev to libgd2-dev as part of
+      the libgd2-{xpm,noxpm}-dev -> libgd2-dev transition.
+  * debian/nginx-naxsi-ui.preinst, debian/nginx-naxsi-ui.postinst,
+    debian/conf/naxsi-ui.conf.1.4.1:
+    + Added preinst script and renamed the new config file to avoid
+      prompting the user. (Closes: #707291)
+  * debian/rules:
+    + Made "debian/rules binary" enough to build binary package.
+      (Closes: #708522)
+
+ -- Kartik Mistry <kartik@debian.org>  Thu, 06 Jun 2013 12:55:23 +0530
+
 nginx (1.4.1-1) unstable; urgency=low
 
   * New upstream release:
