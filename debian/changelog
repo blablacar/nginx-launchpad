@@ -1,3 +1,25 @@
+nginx (1.4.3-2) unstable; urgency=low
+
+  [ Kartik Mistry ]
+  * Renamed debian/nginx-common.service to debian/nginx-common.nginx.service so
+    it is installed properly for systemd. Thanks to Christos Trochalakis.
+  * Set debian/compat to 9 and updated debhelper dependency.
+
+  [ Christos Trochalakis ]
+  * debian/rules, debian/nginx-common.dirs,
+    debian/debian-common.nginx.logrotate:
+    + Switch to dh_installlogrotate.
+  * debian/rules:
+    + *-stamp files are deleted by dh_clean.
+    + Remove unused mime-types target.
+    + Remove not needed config.sub and config.guess targets.
+  * debian/nginx-common.dirs:
+    + Don't ship an empty /run dir.
+  * debian/nginx-{light,full,extras}.lintian-overrides:
+    + Override false lintian spelling error warning.
+
+ -- Kartik Mistry <kartik@debian.org>  Wed, 16 Oct 2013 14:58:11 +0530
+
 nginx (1.4.3-1) unstable; urgency=low
 
   [ Cyril Lavier ]
