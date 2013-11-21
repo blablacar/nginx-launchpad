@@ -176,15 +176,14 @@ Description: nginx web/proxy server (extended version)
  Split Clients, SSI, Upstream, User ID, UWSGI.
  .
  OPTIONAL HTTP MODULES: Addition, Debug, Embedded Perl, FLV, GeoIP,
- Gzip Precompression, Image Filter, IPv6, MP4, Random Index, Real IP,
+ Gzip Precompression, Spdy, Image Filter, IPv6, MP4, Random Index, Real IP,
  Secure Link, SSL, Stub Status, Substitution, WebDAV, XSLT.
  .
  MAIL MODULES: Mail Core, IMAP, POP3, SMTP, SSL.
  .
  THIRD PARTY MODULES: Auth PAM, Chunkin, DAV Ext, Echo, Embedded Lua,
  Fancy Index, HttpHeadersMore, HTTP Substitution Filter, http push,
- Nginx Development Kit, Upload module, Upload Progress,
- Upstream Fair Queue.
+ Nginx Development Kit, Upload Progress, Upstream Fair Queue.
 
 Package: nginx-extras-dbg
 Architecture: any
