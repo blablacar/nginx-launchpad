@@ -1,3 +1,40 @@
+nginx (1.4.4-2) unstable; urgency=low
+
+  [ Michael Lustfield ]
+  * debian/control:
+    + Added Provides: httpd-cgi to packages. (Closes: #701508)
+    + Added other options to nginx depends. (Closes: #729860)
+    + Added Spdy to nginx-full package description.
+  * debian/nginx-common.nginx.init:
+    + Added missing line from patch. (Closes: #728103)
+  * debian/conf/sites-available/default:
+    + Changed ssl_protocols and ssl_ciphers. (Closes: 730142)
+  * debian/nginx-common.preinst:
+    + Modify permissions of /var/log/nginx. (Closes: #701112)
+  * debian/rules:
+    + Added spdy support to nginx-full. (Closes: #730432)
+
+  [ Christos Trochalakis ]
+  * debian/nginx-doc,docs, debian/nginx-common.NEWS:
+    + Ship NEWS with nginx-common instead of nginx-doc.
+  * debian/conf/proxy_params:
+    + Host header should be passed unmodified to the proxied server.
+    + Pass X-Forwarded-Proto header to the proxied server.
+  * debian/control:
+    + Fix nginx-naxsi-ui Depends and Conflicts lines.
+
+  [ Neutron Soutmun ]
+  * debian/patches/guard-use-of-deprecated-openssl-definition.patch:
+    + Fix FTBFS against the recent libssl-dev. (Closes: #733107)
+
+  [ Kartik Mistry ]
+  * debian/control:
+    + Updated to Standards-Version 3.9.5
+  * debian/watch, debian/upstream-signing-key.pgp:
+    + Use upstream PGP signature to verify by watch file.
+
+ -- Kartik Mistry <kartik@debian.org>  Fri, 27 Dec 2013 21:16:01 +0530
+
 nginx (1.4.4-1) unstable; urgency=low
 
   [ Christos Trochalakis ]
