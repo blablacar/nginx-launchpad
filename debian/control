@@ -15,7 +15,7 @@ Build-Depends: autotools-dev,
                libexpat-dev,
                libgd2-dev | libgd2-noxpm-dev,
                libgeoip-dev,
-               liblua5.1-dev,
+               libluajit-5.1-dev [i386 amd64 kfreebsd-i386 armel armhf powerpc powerpcspe mips mipsel] | liblua5.1-0-dev,
                libmhash-dev,
                libpam0g-dev,
                libpcre3-dev,
@@ -28,6 +28,7 @@ Standards-Version: 3.9.5
 Homepage: http://nginx.net
 Vcs-Git: git://anonscm.debian.org/collab-maint/nginx.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/nginx.git;a=summary
+XS-Testsuite: autopkgtest
 
 Package: nginx
 Architecture: all

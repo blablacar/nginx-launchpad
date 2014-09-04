@@ -1,3 +1,39 @@
+nginx (1.6.1-2) unstable; urgency=medium
+
+  [ Christos Trochalakis ]
+  * debian/control:
+    + Build nginx-extras against luajit (Closes: #755875)
+  * debian/modules/nginx-lua:
+    + Update nginx-lua to v0.9.12
+  * debian/nginx-common.nginx.init:
+    + Better pidfile extraction from nginx.conf (Closes: #747329)
+  * debian/conf/mime.types:
+    + Upgrade to the latest upstream mime types.
+      As a consequence, nginx now uses "application/javascript" for
+      javascript files.
+  * debian/conf/nginx.conf:
+    + Add application/javascript to the gzip_types list. (Closes: #737176)
+  * debian/rules:
+    + Make naxsi module first in configure parameters.
+      Fixes erratic naxsi behaviour. (Closes: #758642)
+  * debian/conf/{koi-utf,koi-win,scgi_params,uwsgi_params}:
+    + Sync with upstream config files.
+  * debian/conf/fastcgi_params:
+    + Sync with upstream and remove `SCRIPT_FILENAME` parameter.
+      This change might break fastcgi sites. (Closes: #718639)
+  + debian/conf/fastcgi.conf:
+    + Ship upstream file.
+  * debian/nginx-common.NEWS:
+    + Document syncing conf files with upstream.
+  * debian/tests/control:
+    + Include some simple autopkgtests.
+      Thanks to Robie Basak for the initial patch. (Closes: #756391)
+  * debian/modules/nginx-http-push:
+    + Update to v0.73.
+      Fixes fd leak on reload. (Closes: #745921)
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Thu, 04 Sep 2014 13:00:46 +0300
+
 nginx (1.6.1-1) unstable; urgency=medium
 
   [ Christos Trochalakis ]
