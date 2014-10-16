@@ -29,6 +29,12 @@ case "$1" in
        [ -d /etc/nginx/sites-enabled ] && [ -d /etc/nginx/sites-available ]; then
       ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
     fi
+
+    # Create a default index page when not already present.
+    if [ ! -e /var/www/html/index.nginx-debian.html ]; then
+      cp /usr/share/nginx/html/index.html /var/www/html/index.nginx-debian.html
+    fi
+
     ;;
 
   abort-upgrade|abort-remove|abort-deconfigure)

@@ -1,3 +1,26 @@
+nginx (1.6.2-3) unstable; urgency=medium
+
+  [ Christos Trochalakis ]
+  * Change the default document root to /var/www/html according to debian
+    policy 3.9.6.0. (Closes: #730382)
+  * Provide a new, debian specific, default landing page.
+  * debian/nginx-common.nginx.service:
+    + Graceful stopping of nginx was not handled correctly with systemd.
+  * debian/nginx-common.nginx.init:
+    + Gracefully stop nginx by default, we are switcing to a configurable
+      STOP/5/TERM/5/KILL/5 schedule. We are now in sync with the systemd
+      service file. (Closes: #762708)
+  * debian/conf:
+    + Introduce a `snippets/fastcgi-php.conf` snippet with a basic
+      php configuration that can be included when needed. (Closes: #762491)
+    + Introduce a `snippets/snakeoil.conf` snippet that enabled https
+      using the certs installed by the ssl-cert package.
+    + Suggest disabling SSLv3 in default site with a ref to POODLE.
+  * debian/control:
+    + nginx-common now suggests ssl-cert.
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Thu, 16 Oct 2014 13:34:29 +0300
+
 nginx (1.6.2-2) unstable; urgency=medium
 
   [ Christos Trochalakis ]
