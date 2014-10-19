@@ -1,3 +1,21 @@
+nginx (1.6.2-4) unstable; urgency=medium
+
+  [ Christos Trochalakis ]
+  * debian/modules/nginx-development-kit:
+    + Upgrade v0.2.17-7-g24202b4 -> v0.2.19
+  * debian/modules/nginx-echo:
+    + Upgrade v0.51 -> v0.56
+  * debian/modules/nginx-upload-progress:
+    + Upgrade v0.9.0-0-ga788dea -> 0.9.1
+  * debian/modules/ngx-fancy-index:
+    + Upgrade v0.3.3 -> v0.3.4
+  * debian/copyright:
+    + Rewrite copyright file fixing various issues.
+  * debian/nginx-common.nginx.logrotate:
+    + Switch postrotate to the initscript's rotate command.
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Sun, 19 Oct 2014 08:23:33 +0300
+
 nginx (1.6.2-3) unstable; urgency=medium
 
   [ Christos Trochalakis ]
