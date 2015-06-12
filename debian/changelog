@@ -1,3 +1,55 @@
+nginx (1.9.1-1) unstable; urgency=medium
+
+  [ Michael Lustfield ]
+  * debian/conf/nginx.conf:
+    + Switch worker_processes to auto. (Closes: #781711)
+  * debian/conf/sites-available/default:
+    + Add comment about disabling gzip in HTTPS. (Closes: #773332)
+    + Add comment about checking ssl_ciphers. (Closes: #765782)
+  * debian/modules/*:
+    + Updated nginx-auth-pam 1.3 -> 1.4. (Closes: #777120)
+    + Updated nginx-echo v0.56 -> v0.57.
+    + Updated nginx-lua v0.9.13 -> v0.9.15.
+    + Updated nginx-cache-purge 2.1 -> 2.3.
+    + Updated ngx-fancyindex v0.3.4 -> v0.3.5.
+  * debian/nginx-common.NEWS:
+    + Document potential issues with newer versions on i386.
+  * debian/nginx-common.{dirs,install}, debian/vim/*:
+    + Installing vim syntax highlighting from package. (Closes: #771609)
+      Thanks Emmanuel Bouthenot for building this patch.
+  * debian/nginx-common.nginx.upstart:
+    + Created file to support upstart jobs. (Closes: #745483)
+      Thanks Cameron Norman for building this file.
+  * debian/rules:
+    + Add hardening flags with dpkg-buildflags. (Closes: #747025, #781703)
+      Thanks Thomas Ward.
+    + Supply custom DEB_BUILD_MAINT_OPTIONS for debian_ldflags generation.
+      Thanks Thomas Ward.
+    + Added back missing module gunzip. (Closes: #782065)
+      Thanks Peter Wu for the initial patch.
+  * debian/modules/nginx-lua/*:
+    + Updated module version. (Closes: #762494)
+  * debian/ngx-conf/*
+    + Added configuration utility, not shipped yet. (Closes: #652108)
+  * debian/nginx-common.manpages:
+    + Replaced man page with upstream maintained version. (Closes: #781345)
+  * debian/nginx-common.install:
+    + Changed debian/index.html -> html/index.html. This installs the package
+      maintained version of this file as opposed to our out of date version.
+
+  [ Christos Trochalakis ]
+  * New upstream release. Switching to mainline version. (Closes: #777677)
+  * debian/nginx-common.manpages:
+    + Build & ship manpages with binary packages.
+  * debian/rules:
+    + Adjust configure flags for limit_zone module (renamed to limit_conn).
+  * debian/modules/nginx-lua:
+    + Backport upstream's f4e1311 fixing build failure with mainline nginx.
+  * debian/control:
+    + Depend on libgd-dev now that jessie is released.
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Fri, 12 Jun 2015 15:42:49 +0300
+
 nginx (1.6.2-5) unstable; urgency=medium
 
   [ Christos Trochalakis ]

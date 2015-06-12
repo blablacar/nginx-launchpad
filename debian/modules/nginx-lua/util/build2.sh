@@ -19,6 +19,7 @@ force=$2
             #--without-http_referer_module \
 
 time ngx-build $force $version \
+            --with-ipv6 \
             --with-cc-opt="-I$PCRE_INC" \
             --with-http_realip_module \
         --with-http_ssl_module \
@@ -48,7 +49,6 @@ time ngx-build $force $version \
                 --with-http_gunzip_module \
           --with-select_module \
           --with-poll_module \
-          --with-rtsig_module \
                 $opts \
                 --with-debug
 
