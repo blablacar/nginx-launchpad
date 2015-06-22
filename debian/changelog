@@ -1,3 +1,21 @@
+nginx (1.9.2-1) unstable; urgency=medium
+
+  [ Michael Lustfield ]
+  * debian/nginx-common.nginx.init:
+    + Init script now returns the proper exit status. (Closes: #788573)
+    + Cleaned up the init script to have consistent naming/structure.
+
+  [ Christos Trochalakis ]
+  * New upstream Release.
+  * debian/rules:
+    + Add stream module to nginx-full & nginx-extras.
+    + Add thread pool support to nginx-full & nginx-extras.
+  * debian/modules/nginx-lua:
+    + Backport upstream's 9531e5e7 fixing build failure when thread pool
+      support is enabled.
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Mon, 22 Jun 2015 10:16:19 +0300
+
 nginx (1.9.1-1) unstable; urgency=medium
 
   [ Michael Lustfield ]
