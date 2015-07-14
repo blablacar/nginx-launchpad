@@ -1,3 +1,17 @@
+nginx (1.9.3-1) unstable; urgency=medium
+
+  [ Christos Trochalakis]
+  * New upstream Release. (Closes: #789924)
+  * debian/control:
+    + Remove XS-Testsuite header, it is now automatically added when
+      `debian/tests/control` is present.
+  * debian/modules/nginx-lua:
+    + Update nginx-lua to v0.9.16 and drop our backported patches.
+  * debian/conf/*:
+    + Add REQUEST_SCHEME to fcgi, wsgi and scgi configs (sync with upstream).
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 14 Jul 2015 20:24:52 +0300
+
 nginx (1.9.2-1) unstable; urgency=medium
 
   [ Michael Lustfield ]
