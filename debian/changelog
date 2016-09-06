@@ -1,3 +1,38 @@
+nginx (1.10.1-2) unstable; urgency=medium
+
+  [ Christos Trochalakis ]
+  * debian/control:
+    + Don't allow building against liblua5.1-0-dev on architectures
+      that libluajit is available.
+    + Enable slice module on all flavors. (Closes: #815080)
+    + Enable SCGI & uWSGI module for nginx-light.
+    + Convert to dynamic module packages:
+      o libnginx-mod-nchan
+      o libnginx-mod-http-echo
+      o libnginx-mod-http-upstream-fair
+      o libnginx-mod-http-headers-more-filter
+      o libnginx-mod-http-cache-purge
+      o libnginx-mod-http-fancyindex
+      o libnginx-mod-http-uploadprogress
+      o libnginx-mod-http-subs-filter
+  * debian/modules:
+    + Replace http-push with nchan v1.0.2 (Closes: #836134)
+    + Upgrade nginx-lua to v0.10.6
+    + Upgrade nginx-echo to v0.60
+    + Upgrade headers-more to v0.31
+    + Upgrade fancyindex to v0.4.1
+    + Upgrade upload-progress to v0.9.2
+
+  [ Michael Lustfield ]
+  * debian/patches/0003-*.patch:
+    + Use _GNU_SOURCE on GNU/kFreeBSD. (Closes: #826061)
+      Thanks Steven Chamberlain for the patch.
+  * debian/nginx-*.postinst:
+    + Make nginx-*.postinst use invoke-rc.d. (Closes: #823435)
+      Thanks Simon Deziel for the patch.
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 06 Sep 2016 11:06:26 +0300
+
 nginx (1.10.1-1) unstable; urgency=medium
 
   [ Christos Trochalakis ]
