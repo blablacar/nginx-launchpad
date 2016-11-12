@@ -1,3 +1,15 @@
+nginx (1.10.2-2) unstable; urgency=medium
+
+  * Build against OpenSSL 1.1.0. (Closes: #828453)
+    + Patch for nginx-lua by Alessandro Ghedini.
+    + Patch for nginx-upstream-fair by Kurt Roeckx.
+  * debian/modules:
+    + Rethink module patching logic.
+    + Convert dav-ext to a dynamic module package:
+      o libnginx-mod-http-dav-ext
+
+ -- Christos Trochalakis <yatiohi@ideopolis.gr>  Sat, 12 Nov 2016 09:18:12 +0200
+
 nginx (1.10.2-1) unstable; urgency=high
 
   [ Christos Trochalakis ]
