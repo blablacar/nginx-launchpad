@@ -47,6 +47,7 @@ README for Modules versions
   Homepage: https://github.com/FRiCKLE/ngx_cache_purge/
   Version: 2.3
   Patch: dynamic-module.patch
+  Patch: segfault-1.11.6.patch
 
  nginx-dav-ext-module
   Homepage: https://github.com/arut/nginx-dav-ext-module
@@ -61,3 +62,8 @@ README for Modules versions
   Homepage: https://github.com/yaoweibin/ngx_http_substitutions_filter_module
   Version: v0.6.4
   Patch: dynamic-module.patch
+
+ nginx-rtmp
+  Homepage: https://github.com/arut/nginx-rtmp-module
+    rm -r debian/modules/nginx-rtmp-module/test
+  Version: v1.1.11
