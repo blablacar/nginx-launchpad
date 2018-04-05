@@ -1,7 +1,8 @@
 Source: nginx
 Section: httpd
 Priority: optional
-Maintainer: Debian Nginx Maintainers <pkg-nginx-maintainers@lists.alioth.debian.org>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Nginx Maintainers <pkg-nginx-maintainers@lists.alioth.debian.org>
 Uploaders: Christos Trochalakis <ctrochalakis@debian.org>
 Build-Depends: debhelper (>= 10),
                po-debconf,
