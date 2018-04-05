@@ -5,7 +5,7 @@ export DEB_BUILD_MAINT_OPTIONS=hardening=+all
 debian_cflags:=$(shell dpkg-buildflags --get CFLAGS) -fPIC $(shell dpkg-buildflags --get CPPFLAGS)
 debian_ldflags:=$(shell dpkg-buildflags --get LDFLAGS) -fPIC
 
-FLAVOURS := full light extras
+FLAVOURS := core full light extras
 DYN_MODS := \
 	http-auth-pam \
 	http-cache-purge \
@@ -83,6 +83,20 @@ light_configure_flags := \
 			--without-http_split_clients_module \
 			--without-http_userid_module \
 			--add-dynamic-module=$(MODULESDIR)/http-echo
+
+core_configure_flags := \
+                        $(common_configure_flags) \
+                        --with-http_addition_module \
+                        --with-http_geoip_module=dynamic \
+                        --with-http_gunzip_module \
+                        --with-http_gzip_static_module \
+                        --with-http_image_filter_module=dynamic \
+                        --with-http_sub_module \
+                        --with-http_xslt_module=dynamic \
+                        --with-stream=dynamic \
+                        --with-stream_ssl_module \
+                        --with-mail=dynamic \
+                        --with-mail_ssl_module
 
 full_configure_flags := \
 			$(common_configure_flags) \
