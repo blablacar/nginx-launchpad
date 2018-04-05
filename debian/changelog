@@ -43,6 +43,32 @@ nginx (1.13.7-1) unstable; urgency=medium
 
  -- Christos Trochalakis <ctrochalakis@debian.org>  Thu, 14 Dec 2017 11:04:36 +0200
 
+nginx (1.13.6-2ubuntu2) bionic; urgency=high
+
+  * No change rebuild against openssl1.1.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Mon, 05 Feb 2018 16:51:17 +0000
+
+nginx (1.13.6-2ubuntu1) bionic; urgency=low
+
+  * Merge from Debian unstable.  Remaining changes:
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+    - debian/rules: Alter build flags for cflags and ldflags to fix known
+      fPIE / fPIC compilation issues (see nginx PPA bug for more details
+      and information, LP: #1657596)
+    - debian/patches/0002-Make-sure-signature-stays-the-same-in-
+      all-nginx-buil.patch:  Refreshed patch - Merge-o-Matic introduced some
+      fuzz which caused issues.
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 12 Dec 2017 12:15:30 -0500
+
 nginx (1.13.6-2) unstable; urgency=medium
 
   * rtmp: Ship docs & examples (Closes: #878368)
@@ -130,6 +156,37 @@ nginx (1.13.0-1) experimental; urgency=medium
 
  -- Christos Trochalakis <ctrochalakis@debian.org>  Wed, 10 May 2017 11:40:38 +0300
 
+nginx (1.12.1-0ubuntu2) artful; urgency=medium
+
+  * No-change rebuild for perl 5.26.0.
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 26 Jul 2017 20:11:43 +0000
+
+nginx (1.12.1-0ubuntu1) artful; urgency=medium
+
+  * New upstream release (1.12.1) - full changelog available at upstream
+    website - http://nginx.org/en/CHANGES-1.12
+  * This release is a security patch micro-release from Upstream.
+  * This package contains security content to fix the following CVEs:
+    * CVE-2017-7529: A security issue was identified in nginx range filter.
+      A specially crafted request might result in an integer overflow and
+      incorrect processing of ranges, potentially resulting in sensitive 
+      information leak. (Closes LP: #1704151)
+  * Additional changes:
+    * d/patches/ubuntu-branding.patch: Refreshed Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Sat, 15 Jul 2017 12:40:15 -0400
+
+nginx (1.12.0-1ubuntu1) artful; urgency=medium
+
+  * Merge from Debian Experimental (1.12.0-1, via snapshots.debian.org)
+  * All Ubuntu-specific changes from Ubuntu 1.12.0-0ubuntu1 were retained.
+  * Remaining changes:
+    * d/tests/control: Specify nginx-core flavor tests.
+  * This merge closes the merge request on Launchpad. (LP: #1704020)
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 12 Jul 2017 19:53:24 -0400
+
 nginx (1.12.0-1) experimental; urgency=medium
 
   [ Michael Lustfield ]
@@ -150,6 +207,90 @@ nginx (1.12.0-1) experimental; urgency=medium
 
  -- Christos Trochalakis <ctrochalakis@debian.org>  Fri, 05 May 2017 11:16:30 +0300
 
+nginx (1.12.0-0ubuntu1) artful; urgency=medium
+
+  * New upstream release: 1.12.0 Stable branch.
+  * All remaining Ubuntu-specific and Debian-specific changes remain
+    in place with this upload, the upstream version and code are the
+    only bits that have been updated, except where indicated below.
+  * Remaining changes:
+    - d/modules/nginx-upload-progress/config: Apply upstream patch to
+      fix an issue where the module does not properly function due to
+      the wrong module type being set; this prevented the module from
+      working when built. (LP: #1673056)
+    - d/patches: The following patches were dropped from the package
+      because the changes from the patches are already incorporated 
+      in 1.12.0:
+      - 0004-SSL-error-messages-style.patch
+      - 0005-SSL-style.patch
+      - 0006-SSL-support-for-multiple-curves-ticket-885.patch
+    - d/patches/perl-use-dpkg-buildflags.patch: Refreshed patch to 
+      remove fuzz from the patch.
+    - d/modules/nginx-echo: Apply upstream diff/patch to fix an FTBFS
+    - d/modules/nginx-lua: Apply upstream diff/patch to fix an FTBFS
+    - d/modules/nginx-upstream-fair: Apply diff/patch from the Debian 
+      package maintainers' git repository to not use default_port to
+      fix an FTBFS.  (This will eventually be in Debian, and will get
+      merged in then as well).
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 26 Apr 2017 12:02:33 -0400
+
+nginx (1.12.0-1) UNRELEASED; urgency=medium
+
+  [ Michael Lustfield ]
+  * debian/rules:
+    - Configure build flags to work with other arches and downstreams.
+      Thanks to Thomas Ward.
+
+  [ Christos Trochalakis ]
+  * New upstream release.
+  * Patch nginx-upstream-fair to build against nginx 1.11.6.
+  * Patch nginx-lua to build against nginx 1.11.11.
+  * Patch nginx-echo to build against nginx 1.11.11.
+  * Drop curve list patch, it's included upstream.
+  * Drop perl build flags patch, it is now handled upstream.
+  * Enable SSL Preread builtin module on nginx-full & nginx-extras.
+    (Closes: #854214)
+  * Switch to debhelper 10, no changes needed.
+
+ -- Christos Trochalakis <ctrochalakis@debian.org>  Fri, 28 Apr 2017 11:14:41 +0300
+
+nginx (1.10.3-1ubuntu3) zesty; urgency=medium
+
+  * debian/tests/control: Remove the 'ec-x25519' test stanzas from the
+    declarations of tests to run. This test requires OpenSSL >= 1.1.0
+    to support the X25519 ECDH curve, and we do not have OpenSSL 1.1.0.
+    This delta can be ***dropped*** when we do have OpenSSL >= 1.1.0.
+    - This fixes the autopkgtests, of which the Debian merge introduced
+      a regression due to the ec-x25519 test.
+
+ -- Thomas Ward <teward@ubuntu.com>  Mon, 27 Feb 2017 19:51:57 -0500
+
+nginx (1.10.3-1ubuntu2) zesty; urgency=low
+
+  * debian/*.save: Junk .save left in the packaging, remove these.
+
+ -- Thomas Ward <teward@ubuntu.com>  Thu, 16 Feb 2017 15:39:51 -0500
+
+nginx (1.10.3-1ubuntu1) zesty; urgency=medium
+
+  * Merge from Debian unstable (note: 1.10.3 already was merged, but 1.10.3
+    packaging changes in Debian were not). Remaining changes are as 
+    follows: (LP: #1664652)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+    - debian/rules: Alter build flags for cflags and ldflags to fix known
+      fPIE / fPIC compilation issues (see nginx PPA bug for more details
+      and information, LP: #1657596)
+
+ -- Thomas Ward <teward@ubuntu.com>  Thu, 16 Feb 2017 15:29:40 -0500
+
 nginx (1.10.3-1) unstable; urgency=medium
 
   * New upstream release. (Closes: #855113)
@@ -157,6 +298,24 @@ nginx (1.10.3-1) unstable; urgency=medium
     The repo is now moved under the pkg-nginx namespace.
 
  -- Christos Trochalakis <ctrochalakis@debian.org>  Wed, 15 Feb 2017 09:58:13 +0200
+
+nginx (1.10.3-0ubuntu2) zesty; urgency=low
+
+  * Merge from Debian unstable (nginx version there is 1.10.2-4). Remaining
+    changes: (LP: #1664652)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+    - debian/rules: Alter build flags for cflags and ldflags to fix known
+      fPIE / fPIC compilation issues (see nginx PPA bug for more details 
+      and information, LP: #1657596)
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 14 Feb 2017 17:47:00 -0500
 
 nginx (1.10.2-4) unstable; urgency=medium
 
@@ -230,6 +389,18 @@ nginx (1.10.2-1) unstable; urgency=high
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Sat, 29 Oct 2016 08:45:09 +0300
 
+nginx (1.10.2-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release (1.10.2) - full changelog available at upstream
+    website - http://nginx.org/en/CHANGES-1.10 - upstream release date
+    was 18 Oct 2016
+  * All other changes from 1.10.1-0ubuntu1 through 1.10.1-0ubuntu5 remain
+    included
+  * debian/patches/ubuntu-branding.patch:
+    - Refreshed Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Thu, 15 Dec 2016 11:23:43 -0500
+
 nginx (1.10.1-3) unstable; urgency=medium
 
   * debian/control:
@@ -291,12 +462,88 @@ nginx (1.10.1-1) unstable; urgency=medium
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 31 May 2016 22:01:25 +0300
 
+nginx (1.10.1-0ubuntu5) zesty; urgency=medium
+
+  * debian/nginx-common.config:
+    - Fix the return code so the script does not exit during version
+      string comparisons.
+    - Also update the version string to compare with (for zesty only)
+
+ -- Thomas Ward <teward@ubuntu.com>  Thu, 27 Oct 2016 10:48:45 -0400
+
+nginx (1.10.1-0ubuntu4) zesty; urgency=medium
+
+  * debian/nginx-common.config:
+    - Fix an issue with the incorrect version numbers being compared
+      during configuration; this was something I missed when reviewing
+      the package for uploading previously. (LP: #1637058)
+
+ -- Thomas Ward <teward@ubuntu.com>  Thu, 27 Oct 2016 08:45:40 -0400
+
+nginx (1.10.1-0ubuntu3) zesty; urgency=medium
+
+  [ Christos Trochalakis ]
+  * debian/nginx-common.postinst:
+    + Secure log file handling (owner & permissions) against privilege
+      escalation attacks. /var/log/nginx is now owned by root:adm.
+      Thanks Dawid Golunski (http://legalhackers.com) for the report.
+      Changing /var/log/nginx permissions effectively reopens #701112,
+      since log files can be world-readable. This is a trade-off until
+      a better log opening solution is implemented upstream (trac:376).
+  * debian/control:
+    Don't allow building against liblua5.1-0-dev on architectures
+    that libluajit is available.
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 25 Oct 2016 17:03:54 -0400
+
+nginx (1.10.1-0ubuntu2) zesty; urgency=medium
+
+  * No-change rebuild for perl 5.24 transition
+
+ -- Iain Lane <iain@orangesquash.org.uk>  Mon, 24 Oct 2016 10:36:19 +0100
+
+nginx (1.10.1-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release (1.10.1) - full changelog available at upstream
+    website - http://nginx.org/en/CHANGES-1.10.
+  * Update done to address the following security issues:
+    - [CVE-2016-4450] NULL pointer dereference while writing client
+      request body. (LP: #1587577)
+  * Additional changes:
+    * debian/patches/ubuntu-branding.patch: Refreshed Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 31 May 2016 19:09:33 -0400
+
 nginx (1.10.0-1) unstable; urgency=medium
 
   [ Christos Trochalakis ]
   * New upstream release (1.10.0)
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Fri, 29 Apr 2016 10:31:46 +0300
+
+nginx (1.10.0-0ubuntu1) yakkety; urgency=medium
+
+  * New upstream release (1.10.0) - full changelog available at upstream
+    website - http://nginx.org/en/CHANGES-1.10 (LP: #1575217)   
+  * All Ubuntu specific changes from 1.9.15-0ubuntu1 remain included.
+  * Additional changes:
+    * debian/patches/ubuntu-branding.patch: Refreshed Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 26 Apr 2016 10:24:23 -0400
+
+nginx (1.9.15-0ubuntu1) xenial-proposed; urgency=medium
+
+  * New upstream release (1.9.15) - full changelog available at upstream 
+    website - http://nginx.org/en/CHANGES (LP: #1572223)
+  * All Ubuntu specific changes from 1.1.14-0ubuntu1, except noted below,
+    remain included in this upload.
+  * Remaining changes:
+    * debian/control: Re-add libluajit-5.1-dev build-dependency, as it will
+      only affect nginx-extras which is in Universe. This reduces the merge
+      delta between Ubuntu and Debian slightly, as well. (LP: #1571444)
+    * debian/patches/ubuntu-branding.patch: Refresh Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Mon, 18 Apr 2016 15:39:08 -0400
 
 nginx (1.9.14-2) unstable; urgency=medium
 
@@ -341,6 +588,84 @@ nginx (1.9.14-1) unstable; urgency=medium
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 19 Apr 2016 11:05:35 +0300
 
+nginx (1.9.14-0ubuntu1) xenial-proposed; urgency=medium
+
+  * New upstream release (1.9.14) - full changelog available at upstream
+    website - htp://nginx.org/en/CHANGES (LP: #1566392)
+  * All Ubuntu specific changes from 1.9.13-0ubuntu1, except noted below,
+    remain included in this upload.
+  * Remaining changes:
+    * Enable HTTP/2 module for nginx-full, nginx-extras, and nginx-core
+      (LP: #1565043)
+      - debian/rules: Enable HTTP/2 module building in flavor rules
+      - debian/control: Add HTTP/2 module to package descriptions.
+    * debian/patches/ubuntu-branding.patch: Refresh Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Fri, 01 Apr 2016 14:23:47 -0400
+
+nginx (1.9.13-0ubuntu1) xenial-proposed; urgency=medium
+
+  * New upstream release (1.9.13) - full changelog available at upstream
+    website - http://nginx.org/en/CHANGES (LP: #1563393)
+  * All Ubuntu specific changes from 1.9.12-0ubuntu1 remain included in
+    this upload.
+  * debian/patches/ubuntu-branding.patch: Refresh Ubuntu Branding patch.
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 29 Mar 2016 18:47:36 -0400
+
+nginx (1.9.12-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release (1.9.12) - full changelog available at upstream
+    website - http://nginx.org/en/CHANGES  (LP: #1549347)
+  * All Ubuntu specific changes from 1.9.11-0ubuntu1 and -0ubuntu2 remain
+    included in this upload.
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 24 Feb 2016 10:26:31 -0500
+
+nginx (1.9.11-0ubuntu2) xenial; urgency=medium
+
+  * This is a bug-fix only upload and does not include any new changes to
+    features.
+  * debian/conf/sites-available/default: Modify PHP 'default example' settings
+    to account for php5 being replaced with php7.0 in Xenial. Also adapt the
+    UNIX socket path for php7.0-fpm to be the one used by default in Xenial.
+    (LP: #1547642)
+
+ -- Thomas Ward <teward@ubuntu.com>  Fri, 19 Feb 2016 14:13:28 -0500
+
+nginx (1.9.11-0ubuntu1) xenial; urgency=low
+
+  * New upstream release (1.9.11) - see http://nginx.org/en/CHANGES for
+    full changelog.
+  * Ubuntu-specific changes from the 1.9.10 merge remain included here.
+  * Additional changes:
+    - debian/modules/nginx-lua: Apply upstream patch to fix FTBFS issue
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 09 Feb 2016 10:33:14 -0500
+
+nginx (1.9.10-1ubuntu1) xenial; urgency=low
+
+  * Merge from Debian unstable.  Remaining changes:  (LP: #1538677)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/control:
+      - drop luajit from Build-Depends as it is in universe.
+      - Remove HTTP/2 references in package descriptions, per Ubuntu
+        Security Team mandate to disable HTTP/2 support.
+    - debian/rules:
+      - Disable HTTP/2 module support in all flavors, per Ubuntu Security
+        Team mandate.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+  * Additional bugs fixed by this merge:
+    - nginx-common should not depend on python (LP: #1480513)
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 27 Jan 2016 12:52:00 -0500
+
 nginx (1.9.10-1) unstable; urgency=medium
 
   [ Christos Trochalakis ]
@@ -349,6 +674,54 @@ nginx (1.9.10-1) unstable; urgency=medium
     + Drop python dependency from nginx-common. (Closes: #808699)
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 26 Jan 2016 20:12:06 +0200
+
+nginx (1.9.10-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release.
+  * debian/patches/ubuntu-branding.patch: Refreshed Ubuntu Branding patch
+  * Security content of this upload addresses the following vulnerabilities
+    and CVE-numbered Security issues: (LP: #1538165)
+    - Invalid pointer dereference might occur during DNS server response
+      processing, allowing an attacker who is able to forge UDP
+      packets from the DNS server to cause worker process crash
+      (CVE-2016-0742).
+    - Use-after-free condition might occur during CNAME response
+      processing. This problem allows an attacker who is able to trigger
+      name resolution to cause worker process crash, or might
+      have potential other impact (CVE-2016-0746).
+    - CNAME resolution was insufficiently limited, allowing an attacker who
+      is able to trigger arbitrary name resolution to cause excessive resource
+      consumption in worker processes (CVE-2016-0747).
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 26 Jan 2016 14:53:01 -0500
+
+nginx (1.9.9-1ubuntu1) xenial; urgency=low
+
+  * Merge from Debian unstable. Remaining changes: (LP: #1534208)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/control:
+      - drop luajit from Build-Depends as it is in universe.
+      - Update nginx-core description to match nginx-full description of the
+        standard and optional HTTP modules that are enabled.
+      - Remove HTTP/2 references in package descriptions, per Ubuntu
+        Security Team mandate to disable HTTP/2 support.
+    - debian/rules:
+      - Update nginx-core configure flags to match nginx-full config flags,
+        due to refreshing the nginx-core 'enabled modules' to match the
+        nginx-full modules (minus third-party modules)
+      - Disable HTTP/2 module support in all flavors, per Ubuntu Security
+        Team mandate.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+  * debian/control: Remove HTTP/2 reference in nginx-extras description, which
+    was missed previously due to accidental oversight. (LP: #1534368)
+
+ -- Thomas Ward <teward@ubuntu.com>  Thu, 14 Jan 2016 18:42:00 -0500
 
 nginx (1.9.9-1) unstable; urgency=medium
 
@@ -362,6 +735,46 @@ nginx (1.9.9-1) unstable; urgency=medium
     + Update nginx-lua to v0.10.0.
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Thu, 14 Jan 2016 10:40:35 +0200
+
+nginx (1.9.9-0ubuntu1) xenial; urgency=medium
+
+  * New upstream release.
+  * debian/patches/ubuntu-branding.patch: Refreshed Ubuntu Branding patch
+
+ -- Thomas Ward <teward@ubuntu.com>  Sun, 03 Jan 2016 12:49:21 -0500
+
+nginx (1.9.6-2ubuntu2) xenial; urgency=medium
+
+  * Rebuild for Perl 5.22.1.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 18 Dec 2015 12:53:05 +0000
+
+nginx (1.9.6-2ubuntu1) xenial; urgency=medium
+
+  * Merge from Debian unstable.  Remaining changes:  (LP: #1510096)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/control: drop luajit from Build-Depends as it is in universe.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+  * Additional changes:
+    * debian/rules:
+      - Update nginx-core configure flags to match nginx-full config flags,
+        due to refreshing the nginx-core 'enabled modules' to match the
+        nginx-full modules (minus third-party modules)
+      - Disable HTTP/2 module support in all flavors, per Ubuntu Security
+        Team mandate.
+    * debian/control:
+      - Update nginx-core description to match nginx-full description of the
+        standard and optional HTTP modules that are enabled.
+      - Remove HTTP/2 references in package descriptions, per Ubuntu
+        Security Team mandate to disable HTTP/2 support.
+
+ -- Thomas Ward <teward@ubuntu.com>  Mon, 14 Dec 2015 10:34:42 -0500
 
 nginx (1.9.6-2) unstable; urgency=medium
 
@@ -387,6 +800,21 @@ nginx (1.9.4-1) unstable; urgency=medium
     + Fix licence order.
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Mon, 24 Aug 2015 16:23:20 +0300
+
+nginx (1.9.3-1ubuntu1) wily; urgency=medium
+
+  * Merge from Debian.  Remaining changes: (LP: #1476811)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/control: drop luajit from Build-Depends as it is in universe.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 22 Jul 2015 11:39:44 -0400
 
 nginx (1.9.3-1) unstable; urgency=medium
 
@@ -472,6 +900,52 @@ nginx (1.9.1-1) unstable; urgency=medium
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Fri, 12 Jun 2015 15:42:49 +0300
 
+nginx (1.6.2-5ubuntu4) wily; urgency=medium
+
+  * debian/apport/source_nginx.py:
+    - Add apport hooks for additional bug information gathering, as a result
+      of non-useful reports due to postinstall script failure bugs. This is
+      necessary in order to be able to actually debug what is going on in the
+      bug reports, thanks to systemd not putting startup errors to stdout or
+      stderr anymore, like Upstart and others did. (LP: #1472683)
+  * debian/nginx-common.install:
+    - Add install rule for debian/apport/source_nginx.py, which is the new
+      apport hooks to gather additional 'Package' bugtype debug data.
+
+ -- Thomas Ward <teward@ubuntu.com>  Fri, 10 Jul 2015 12:51:48 -0400
+
+nginx (1.6.2-5ubuntu3) vivid-proposed; urgency=medium
+
+  * debian/rules:
+    * Reversed Debian change in 1.6.2-5ubuntu2.
+    * Added DEB_BUILD_MAINT_OPTIONS=hardening=+all to enable all
+      dpkg-buildflags to harden the code, except for PIE flags.
+    * Manually define DEB_BUILD_MAINT_OPTIONS in DEBIAN_NGINX_PERL_LDFLAGS
+      to not have -fPIE conflicts in Perl flags.
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 01 Apr 2015 14:57:34 -0400
+
+nginx (1.6.2-5ubuntu2) vivid-proposed; urgency=medium
+
+  * debian/rules:
+    * Added -fPIE -pie to build rules (enables position-independent builds)
+      using Debian's committed change to enable. (LP: #1315426)
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 01 Apr 2015 14:26:32 -0400
+
+nginx (1.6.2-5ubuntu1) vivid; urgency=medium
+
+  * Merge from Debian.  Remaining changes: (LP: #1399967)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - debian/rules: Drop from -O3 to -O2 to work around a build failure.
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/control: drop luajit from Build-Depends as it is in universe.
+
+ -- Thomas Ward <teward@ubuntu.com>  Sat, 06 Dec 2014 13:06:55 -0500
+
 nginx (1.6.2-5) unstable; urgency=medium
 
   [ Christos Trochalakis ]
@@ -486,6 +960,27 @@ nginx (1.6.2-5) unstable; urgency=medium
     + Add a list of important changes since wheezy.
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Sun, 30 Nov 2014 10:39:55 +0200
+
+nginx (1.6.2-4ubuntu1) vivid; urgency=medium
+
+  * Merge from Debian. Remaining changes: (LP: #1388621)
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding
+      (refreshed).
+    - debian/rules: Drop from -O3 to -O2 to work around a build failure.
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/control: drop luajit from Build-Depends as it is in universe.
+  * debian/control:
+    * Remove nginx-naxsi* from nginx-core and related
+      package stanzas, as the naxsi packages have all been dropped.
+    * Remove reference to nginx-naxsi from nginx metapackage description
+  * debian/index.html: Modify included index.html file to have Ubuntu
+    branding, Ubuntu bug reporting tool references, and a link to the
+    Launchpad bugs page for the nginx package.
+
+ -- Thomas Ward <teward@ubuntu.com>  Wed, 05 Nov 2014 10:05:07 -0500
 
 nginx (1.6.2-4) unstable; urgency=medium
 
@@ -538,6 +1033,27 @@ nginx (1.6.2-2) unstable; urgency=medium
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Fri, 26 Sep 2014 11:06:47 +0300
 
+nginx (1.6.2-1ubuntu1.1) utopic; urgency=medium
+
+  * debian/conf/sites-available/default: Remove SSLv3 from the ssl_protocols
+    line in the default config example, due to POODLE vulnerability.
+
+ -- Thomas Ward <teward@dark-net.net>  Wed, 22 Oct 2014 09:43:35 -0400
+
+nginx (1.6.2-1ubuntu1) utopic; urgency=medium
+
+  * Merge from Debian. Remaining changes:
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding
+      (refreshed).
+    - debian/rules: Drop from -O3 to -O2 to work around a build failure.
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+  * debian/tests/control: add nginx-core test.
+  * debian/control: drop luajit from Build-Depends as it is in universe.
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 22 Sep 2014 13:32:30 -0400
+
 nginx (1.6.2-1) unstable; urgency=high
 
   [ Christos Trochalakis ]
@@ -584,6 +1100,25 @@ nginx (1.6.1-2) unstable; urgency=medium
       Fixes fd leak on reload. (Closes: #745921)
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Thu, 04 Sep 2014 13:00:46 +0300
+
+nginx (1.6.1-1ubuntu2) utopic; urgency=medium
+
+  * Rebuild for Perl 5.20.0.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sun, 24 Aug 2014 06:43:36 -0700
+
+nginx (1.6.1-1ubuntu1) utopic; urgency=medium
+
+  * Merge from Debian. Remaining changes:
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding
+      (refreshed).
+    - debian/rules: Drop from -O3 to -O2 to work around a build failure.
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+  * Add dep8 smoke test
+
+ -- Robie Basak <robie.basak@ubuntu.com>  Fri, 15 Aug 2014 16:46:48 +0000
 
 nginx (1.6.1-1) unstable; urgency=medium
 
@@ -650,6 +1185,34 @@ nginx (1.4.7-1) unstable; urgency=medium
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 18 Mar 2014 22:03:47 +0200
 
+nginx (1.4.6-1ubuntu3) trusty; urgency=medium
+
+  * Add new binary package for main, nginx-core, which contains only
+    source-tarball-included modules and no third-party modules.
+  * Changes to debian/ directory:
+    - control:
+      + Add entry for nginx-core and nginx-core-dbg.
+    - rules:
+      + Add nginx-core flavor to the build rules.
+    - nginx-core.*: Add new packaging files for nginx-core based on
+      the packaging files for nginx-full.
+  * The above changes satisfy the requirements for main (LP: #1262710)
+
+ -- Thomas Ward <teward@ubuntu.com>  Mon, 10 Mar 2014 18:23:36 -0400
+
+nginx (1.4.6-1ubuntu2) trusty; urgency=medium
+
+  * debian/rules: Drop from -O3 to -O2 to work around a build failure.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Sun, 09 Mar 2014 11:49:28 -0600
+
+nginx (1.4.6-1ubuntu1) trusty; urgency=low
+
+  * Merge from Debian unstable.  Remaining changes:
+    - debian/patches/ubuntu-branding.patch: Add Ubuntu branding.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Sun, 09 Mar 2014 11:13:26 -0600
+
 nginx (1.4.6-1) unstable; urgency=medium
 
   [ Christos Trochalakis ]
@@ -670,6 +1233,14 @@ nginx (1.4.6-1) unstable; urgency=medium
     + Fix upstream signature verification.
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 04 Mar 2014 18:06:55 +0200
+
+nginx (1.4.5-1ubuntu1) trusty; urgency=medium
+
+  * Resynchronise with Debian (LP: #1280511).  Remaining changes:
+    - debian/patches/ubuntu-branding.patch:
+      + Add Ubuntu branding to server_tokens.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 15 Feb 2014 03:05:42 +0000
 
 nginx (1.4.5-1) unstable; urgency=medium
 
@@ -711,6 +1282,14 @@ nginx (1.4.4-3) unstable; urgency=medium
 
  -- Christos Trochalakis <yatiohi@ideopolis.gr>  Tue, 31 Dec 2013 11:47:07 +0200
 
+nginx (1.4.4-2ubuntu1) trusty; urgency=medium
+
+  * Resynchronise with Debian.  Remaining changes:
+    - debian/patches/ubuntu-branding.patch:
+      + Add Ubuntu branding to server_tokens.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Sat, 28 Dec 2013 10:21:44 +0000
+
 nginx (1.4.4-2) unstable; urgency=low
 
   [ Michael Lustfield ]
@@ -748,6 +1327,14 @@ nginx (1.4.4-2) unstable; urgency=low
 
  -- Kartik Mistry <kartik@debian.org>  Fri, 27 Dec 2013 21:16:01 +0530
 
+nginx (1.4.4-1ubuntu1) trusty; urgency=low
+
+  * Resynchronise with Debian (LP: #1253691).  Remaining changes:
+    - debian/patches/ubuntu-branding.patch:
+      + Add Ubuntu branding to server_tokens.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 22 Nov 2013 12:23:25 +0000
+
 nginx (1.4.4-1) unstable; urgency=low
 
   [ Christos Trochalakis ]
@@ -771,6 +1358,14 @@ nginx (1.4.4-1) unstable; urgency=low
       (Closes: #728103)
 
  -- Michael Lustfield <michael@lustfield.net>  Thu, 21 Nov 2013 19:25:50 +0530
+
+nginx (1.4.3-2ubuntu1) trusty; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - debian/patches/ubuntu-branding.patch:
+      + Add Ubuntu branding to server_tokens.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 21 Oct 2013 13:26:52 +0100
 
 nginx (1.4.3-2) unstable; urgency=low
 
@@ -828,6 +1423,14 @@ nginx (1.4.3-1) unstable; urgency=low
 
  -- Kartik Mistry <kartik@debian.org>  Thu, 10 Oct 2013 17:28:56 +0530
 
+nginx (1.4.1-3ubuntu1) saucy; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - debian/patches/ubuntu-branding.patch:
+      + Add Ubuntu branding to server_tokens.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 20 Jun 2013 15:08:44 +0100
+
 nginx (1.4.1-3) unstable; urgency=low
 
   [ Kartik Mistry ]
@@ -840,6 +1443,14 @@ nginx (1.4.1-3) unstable; urgency=low
     + Added argument "install" to the preinst script. (Closes: #711590)
 
  -- Kartik Mistry <kartik@debian.org>  Sun, 09 Jun 2013 13:07:52 +0530
+
+nginx (1.4.1-2ubuntu1) saucy; urgency=low
+
+  * Resynchronise with Debian.  Remaining changes:
+    - debian/patches/ubuntu-branding.patch:
+      + Add Ubuntu branding to server_tokens.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Fri, 07 Jun 2013 15:41:48 +0100
 
 nginx (1.4.1-2) unstable; urgency=medium
 
@@ -861,6 +1472,24 @@ nginx (1.4.1-2) unstable; urgency=medium
       (Closes: #708522)
 
  -- Kartik Mistry <kartik@debian.org>  Thu, 06 Jun 2013 12:55:23 +0530
+
+nginx (1.4.1-1ubuntu2) saucy; urgency=low
+
+  * Rebuild for libgd3.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Mon, 20 May 2013 00:45:10 +0100
+
+nginx (1.4.1-1ubuntu1) saucy; urgency=low
+
+  * Merge with Debian unstable (LP: #1177919). Remaining changes:
+    - debian/conf/sites-available/default:
+      + Modify default site configuration file to correct a typo
+        that prevented out-of-the-box usability (LP: #1162177).
+    - debian/patches/ubuntu-branding.patch:
+      + Add ubuntu branding to server_tokens.
+  * Refresh all patches.
+
+ -- Dmitry Shachnev <mitya57@ubuntu.com>  Sat, 11 May 2013 14:47:53 +0400
 
 nginx (1.4.1-1) unstable; urgency=low
 
@@ -938,6 +1567,36 @@ nginx (1.4.0-1) experimental; urgency=low
     + Removed obsolete --with-md5 and --with-sha1
 
  -- Kartik Mistry <kartik@debian.org>  Thu, 25 Apr 2013 12:51:45 +0530
+
+nginx (1.2.6-1ubuntu4) saucy; urgency=low
+
+  * debian/patches/ubuntu-branding.patch: Move Ubuntu branding from
+    the numerical version string to the long version (LP: #1174158)
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Thu, 09 May 2013 11:50:52 -0600
+
+nginx (1.2.6-1ubuntu3) raring; urgency=low
+
+  * debian/patches/ubuntu-branding.patch: Add ubuntu branding
+    to server_tokens. 
+
+ -- Chuck Short <zulcss@ubuntu.com>  Tue, 09 Apr 2013 10:23:26 -0500
+
+nginx (1.2.6-1ubuntu2) raring; urgency=low
+
+  * debian/conf/sites-available/default:
+    * Modify default site configuration file to correct a typo
+      that prevented out-of-the-box usability (LP: #1162177)
+
+ -- Thomas Ward <teward@ubuntu.com>  Fri, 05 Apr 2013 20:22:38 +0100
+
+nginx (1.2.6-1ubuntu1) raring; urgency=low
+
+  * debian/conf/sites-available/default:
+    * Modify default site default configuration file to bind to IPv6
+      only for IPv6 default listen statement (LP: #1132678)
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 12 Mar 2013 00:23:02 +0000
 
 nginx (1.2.6-1) unstable; urgency=low
 
