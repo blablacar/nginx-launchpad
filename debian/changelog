@@ -1,3 +1,29 @@
+nginx (1.13.10-1ubuntu1) bionic; urgency=medium
+
+  * Merge with Debian unstable. Remaining changes:
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+  * Drop:
+    - debian/patches/0002-Make-sure-signature-stays-the-same-in-
+      all-nginx-buil.patch:  Refreshed patch - Merge-o-Matic introduced some
+      fuzz which caused issues.
+      [ Does not seem necessary ]
+    - d/control: drop mention of SSL Preread from nginx-full, nginx-extras
+      [ Previously undocumented ]
+    - d/gbp.conf: update for 1.12 release
+      [ Previously undocumented ]
+    - d/p/0003-define_gnu_source-on-other-glibc-based-platforms.patch:
+      Refresh patch.
+      [ Previously undocumented ]
+
+ -- Nishanth Aravamudan <nish.aravamudan@canonical.com>  Thu, 05 Apr 2018 15:43:49 -0700
+
 nginx (1.13.10-1) unstable; urgency=medium
 
   * New upstream version
