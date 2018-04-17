@@ -1,3 +1,21 @@
+nginx (1.14.0-0ubuntu1) bionic; urgency=medium
+
+  * New upstream stable release (1.14.0)
+  * Upstream changelogs can be found at http://nginx.org/en/CHANGES-1.14
+  * There are no functional changes or new features in this release,
+    and the only change is a version number change.
+  * Remaining Ubuntu-specific changes:
+    - debian/patches/ubuntu-branding.patch: add Ubuntu branding (refreshed)
+    - d/{control,rules,nginx-core.*}: add new binary package for main,
+      nginx-core, which contains only source-tarball-included modules
+      and no third-party modules.
+    - debian/tests/control: add nginx-core test.
+    - debian/apport/source_nginx.py: Add apport hooks for additional bug
+      information gathering.
+    - debian/nginx-common.install: Add install rule for apport hooks.
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 17 Apr 2018 12:17:58 -0400
+
 nginx (1.13.12-0ubuntu1) bionic; urgency=medium
 
   * New upstream releases (1.13.11, 1.13.12)
