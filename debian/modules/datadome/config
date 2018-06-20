@@ -1,0 +1,55 @@
+ngx_addon_name=ngx_http_data_dome_shield_module
+
+DD_AUTH_MODULE="ngx_http_data_dome_auth_module"
+DD_AUTH_SRC="$ngx_addon_dir/ngx_http_data_dome_auth_module.c"
+
+DD_SHIELD_MODULE="ngx_http_data_dome_shield_module"
+DD_SHIELD_SRC="$ngx_addon_dir/ngx_http_data_dome_shield_module.c"
+
+DD_DSERVER_MODULE="ngx_http_data_dome_upstream_dynamic_servers_module"
+DD_DSERVER_SRC="$ngx_addon_dir/ngx_http_data_dome_upstream_dynamic_servers_module.c"
+
+if [ "$ngx_module_link" = DYNAMIC ]; then
+
+    ngx_module_name="$DD_AUTH_MODULE"
+    ngx_module_srcs="$DD_AUTH_SRC"
+    . auto/module
+
+    ngx_module_name="$DD_SHIELD_MODULE"
+    ngx_module_srcs="$DD_SHIELD_SRC"
+    . auto/module
+
+    ngx_module_name="$DD_DSERVER_MODULE"
+    ngx_module_srcs="$DD_DSERVER_SRC"
+    . auto/module
+
+elif [ "$ngx_module_link" = ADDON ]; then
+    ngx_module_type=HTTP
+    ngx_module_name=$DD_AUTH_MODULE
+    ngx_module_srcs=$DD_AUTH_SRC
+    . auto/module
+
+    ngx_module_type=HTTP
+    ngx_module_name=$DD_SHIELD_MODULE
+    ngx_module_srcs=$DD_SHIELD_SRC
+    . auto/module
+
+    ngx_module_type=HTTP
+    ngx_module_name=$DD_DSERVER_MODULE
+    ngx_module_srcs=$DD_DSERVER_SRC
+    . auto/module
+
+else
+    HTTP_MODULES="$HTTP_MODULES $DD_AUTH_MODULE $DD_SHIELD_MODULE $DD_DSERVER_MODULE"
+
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $DD_AUTH_SRC $DD_SHIELD_SRC $DD_DSERVER_SRC"
+fi
+
+if [ $USE_PCRE = DISABLED ]; then
+   cat << END
+   $0: warning: the Data Dome module require PCRE for MIME based filtering, \
+you can use it without PCRE but some feature is missed.
+END
+else
+    USE_PCRE=YES
+fi
