@@ -25,7 +25,10 @@ DYN_MODS := \
 	mail \
 	nchan \
 	rtmp \
-	stream
+	stream \
+	http_data_dome_auth \
+	http_data_dome_shield \
+	http_data_dome_upstream_dynamic_servers
 
 MODULESDIR = $(CURDIR)/debian/modules
 BASEDIR = $(CURDIR)
@@ -150,7 +153,8 @@ extras_configure_flags := \
 			--add-dynamic-module=$(MODULESDIR)/rtmp \
 			--add-dynamic-module=$(MODULESDIR)/http-uploadprogress \
 			--add-dynamic-module=$(MODULESDIR)/http-upstream-fair \
-			--add-dynamic-module=$(MODULESDIR)/http-subs-filter
+			--add-dynamic-module=$(MODULESDIR)/http-subs-filter \
+			--add-dynamic-module=$(MODULESDIR)/datadome
 
 %:
 	dh $@ --without autoreconf

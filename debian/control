@@ -190,6 +190,9 @@ Depends: libnginx-mod-http-auth-pam (= ${binary:Version}),
          libnginx-mod-mail (= ${binary:Version}),
          libnginx-mod-nchan (= ${binary:Version}),
          libnginx-mod-stream (= ${binary:Version}),
+         libnginx-mod-http-data-dome-auth (= ${binary:Version}),
+         libnginx-mod-http-data-dome-shield (= ${binary:Version}),
+         libnginx-mod-http-data-dome-upstream-dynamic-servers (= ${binary:Version}),
          nginx-common (= ${source:Version}),
          iproute2,
          ${misc:Depends},
@@ -430,3 +433,21 @@ Description: RTMP support for Nginx
   - Stream relay support via a push or pull model;
   - Integrated stream recording;
   - and more.
+
+Package: libnginx-mod-http-data-dome-auth
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: DataDome authentication module
+  This package contains the dynamic DataDome authentication module for nginx.
+
+Package: libnginx-mod-http-data-dome-shield
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: DataDome shield module
+  This package contains the dynamic DataDome shield module for nginx.
+
+Package: libnginx-mod-http-data-dome-upstream-dynamic-servers
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: DataDome upstream dynamic servers module
+  This package contains the dynamic DataDome upstream dynamic servers module for nginx.
