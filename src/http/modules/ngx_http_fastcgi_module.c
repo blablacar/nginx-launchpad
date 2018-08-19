@@ -3264,7 +3264,8 @@ ngx_http_fastcgi_init_params(ngx_conf_t *cf, ngx_http_fastcgi_loc_conf_t *conf,
             return NGX_ERROR;
         }
 
-        copy->code = (ngx_http_script_code_pt) ngx_http_script_copy_len_code;
+        copy->code = (ngx_http_script_code_pt) (void *)
+                                                 ngx_http_script_copy_len_code;
         copy->len = src[i].key.len;
 
         copy = ngx_array_push_n(params->lengths,
@@ -3273,7 +3274,8 @@ ngx_http_fastcgi_init_params(ngx_conf_t *cf, ngx_http_fastcgi_loc_conf_t *conf,
             return NGX_ERROR;
         }
 
-        copy->code = (ngx_http_script_code_pt) ngx_http_script_copy_len_code;
+        copy->code = (ngx_http_script_code_pt) (void *)
+                                                 ngx_http_script_copy_len_code;
         copy->len = src[i].skip_empty;
 
 
@@ -3499,7 +3501,7 @@ ngx_http_fastcgi_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf->handler = ngx_http_fastcgi_handler;
 
-    if (clcf->name.data[clcf->name.len - 1] == '/') {
+    if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {
         clcf->auto_redirect = 1;
     }
 
