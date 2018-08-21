@@ -1,3 +1,11 @@
+nginx (1.15.2-0ubuntu2) cosmic; urgency=medium
+
+  * d/control: Add `iproute2` dependencies for the binary 
+    nginx-{core,light,full,extras} packages, they got missed in the
+    application of the diff in 1.15.2-0ubuntu1. (LP: #1782226)
+
+ -- Thomas Ward <teward@ubuntu.com>  Tue, 21 Aug 2018 12:07:59 -0400
+
 nginx (1.15.2-0ubuntu1) cosmic; urgency=medium
 
   * Switch to track NGINX Mainline for 18.10 (and 19.04) releases after
