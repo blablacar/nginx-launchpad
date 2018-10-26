@@ -1,3 +1,10 @@
+nginx (1.15.5-0ubuntu2) cosmic; urgency=medium
+
+  * d/conf/nginx.conf: Enable TLSv1.3 by default by adding TLSv1.3 to
+    the ssl_protocols line.  (SRU, LP: #1800214)
+
+ -- Thomas Ward <teward@ubuntu.com>  Fri, 26 Oct 2018 15:25:59 -0400
+
 nginx (1.15.5-0ubuntu1) cosmic; urgency=medium
 
   * This is a bugfixes-only upstream micro release, and thus is a bugfixes-
