@@ -141,6 +141,7 @@ extras_configure_flags := \
 			--with-stream=dynamic \
 			--with-stream_ssl_module \
 			--with-stream_ssl_preread_module \
+			--add-module=$(MODULESDIR)/vts \
 			--add-dynamic-module=$(MODULESDIR)/http-headers-more-filter \
 			--add-dynamic-module=$(MODULESDIR)/http-auth-pam \
 			--add-dynamic-module=$(MODULESDIR)/http-cache-purge \
