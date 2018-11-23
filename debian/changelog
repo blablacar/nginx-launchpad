@@ -1,3 +1,11 @@
+nginx (1.15.6-0ubuntu2) disco; urgency=medium
+
+  * Apply a Debian packaging change to Ubuntu package for config parity:
+    * d/conf/snippets/fastcgi-php.conf: Adjust fastcgi_split_path_info
+      snippet to handle the /example.php/ case. (Debian bug 911398)
+
+ -- Thomas Ward <teward@ubuntu.com>  Fri, 23 Nov 2018 10:56:21 -0500
+
 nginx (1.15.6-0ubuntu1) disco; urgency=medium
 
   * New upstream release (1.15.6) - full changelog available from 
