@@ -1,3 +1,15 @@
+nginx (1.15.9-0ubuntu1bbc1) UNRELEASED; urgency=medium
+
+  [ Paul Grandperrin ]
+  * Non-maintainer upload.
+  * Add Datadome source code in Debian's module directory
+  * Package Datadome module
+
+  [ Anthony Bescond ]
+  * Add vts module
+
+ -- Paul Grandperrin <paul.grandperrin@gmail.com>  Mon, 08 Apr 2019 16:37:51 +0200
+
 nginx (1.15.9-0ubuntu1) disco; urgency=medium
 
   * New upstream release (1.15.9) - full changelog available from
