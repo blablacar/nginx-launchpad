@@ -26,9 +26,9 @@ DYN_MODS := \
 	nchan \
 	rtmp \
 	stream \
-	http_data_dome_auth \
-	http_data_dome_shield \
-	http_data_dome_upstream_dynamic_servers
+	http-data-dome-auth \
+	http-data-dome-shield \
+	http-data-dome-upstream-dynamic-servers
 
 MODULESDIR = $(CURDIR)/debian/modules
 BASEDIR = $(CURDIR)
